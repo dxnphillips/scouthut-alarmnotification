@@ -20,6 +20,7 @@ from .const import (
     ACTION_ATTEND,
     CONF_LADDER_ROUNDS,
     CONF_PUSH_SERVICE,
+    CONF_PUSH_SERVICES,
     CONF_RECIPIENTS,
     CONF_ROUND_SECONDS,
     CONF_SMS_SERVICE,
@@ -71,6 +72,21 @@ class AlertingEngine:
 
     def _opt(self, key: str, default: Any = None) -> Any:
         return {**self.entry.data, **self.entry.options}.get(key, default)
+
+    def _push_services(self) -> list[str]:
+        """Return every push service to notify.
+
+        Several phones can be chosen in the UI, so this is a list. The older
+        single value key is honoured so an entry configured before the list
+        existed keeps working.
+        """
+        raw = self._opt(CONF_PUSH_SERVICES)
+        if not raw:
+            legacy = self._opt(CONF_PUSH_SERVICE)
+            raw = [legacy] if legacy else []
+        if isinstance(raw, str):
+            raw = [raw]
+        return [service for service in raw if service]
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -222,17 +238,26 @@ class AlertingEngine:
 
     async def _send_push(self, alert: Alert) -> None:
         critical = alert.severity == SEVERITY_CRITICAL
+        activity = alert.severity == SEVERITY_ACTIVITY
         tag = alert.tag or (
             "texecom_critical"
             if critical
-            else "texecom_fault"
-            if alert.severity != SEVERITY_ACTIVITY
             else "texecom_info"
+            if activity
+            else "texecom_fault"
         )
+        # A separate Android channel per class so a keyholder can mute activity
+        # on their own phone without touching the alarm and fault channels.
+        if critical:
+            channel = "Alarm"
+        elif activity:
+            channel = "Alarm Activity"
+        else:
+            channel = "Alarm Faults"
 
         data: dict[str, Any] = {
             "tag": tag,
-            "channel": "Alarm" if critical else "Alarm Faults",
+            "channel": channel,
             "ttl": 0,
             "priority": "high",
         }
@@ -274,10 +299,9 @@ class AlertingEngine:
                 {"action": ACTION_ATTEND, "title": "Attending"},
             ]
 
-        await self._call(
-            self._opt(CONF_PUSH_SERVICE),
-            {"title": title, "message": message, "data": data},
-        )
+        payload = {"title": title, "message": message, "data": data}
+        for service in self._push_services():
+            await self._call(service, payload)
 
     async def _send_sms(self, alert: Alert) -> None:
         recipients = self._opt(CONF_RECIPIENTS) or []

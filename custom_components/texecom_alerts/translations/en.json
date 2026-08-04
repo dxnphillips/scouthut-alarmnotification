@@ -22,12 +22,14 @@
       },
       "notify": {
         "title": "Notifications",
-        "description": "Push is required. SMS and voice are optional but are what actually wake somebody at three in the morning. Recipients apply to SMS and voice only.",
+        "description": "Pick one or more phones for push. Choose them from the dropdown, no notify group needed. SMS and voice are optional but are what actually wake somebody at three in the morning. Recipient numbers apply to SMS and voice only.",
         "data": {
-          "push_service": "Push notify service",
+          "push_services": "Push notify services (choose one or more phones)",
           "sms_service": "SMS notify service",
           "voice_service": "Voice call notify service",
-          "recipients": "Recipient numbers in E.164 format"
+          "recipients": "Recipient numbers for SMS and voice in E.164 format",
+          "escalate_tampers": "Escalate tamper alarms as emergencies (voice calls)",
+          "notify_activity": "Send activity notifications such as arming and access"
         }
       }
     },
@@ -44,10 +46,12 @@
         "title": "Texecom Alerts options",
         "description": "Changes take effect immediately. No restart needed.",
         "data": {
-          "push_service": "Push notify service",
+          "push_services": "Push notify services (choose one or more phones)",
           "sms_service": "SMS notify service",
           "voice_service": "Voice call notify service",
-          "recipients": "Recipient numbers in E.164 format",
+          "recipients": "Recipient numbers for SMS and voice in E.164 format",
+          "escalate_tampers": "Escalate tamper alarms as emergencies (voice calls)",
+          "notify_activity": "Send activity notifications such as arming and access",
           "stale_minutes": "Treat data as stale after (minutes)",
           "battery_low_volts": "Standby battery low threshold (V)",
           "ladder_rounds": "Escalation rounds",

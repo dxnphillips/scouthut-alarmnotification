@@ -18,7 +18,9 @@ panel events and a keyholder's phone ringing at three in the morning.
 
 **Classifies every panel event** into critical, fault or activity. Confirmed
 alarms, panic, duress, fire and medical escalate. Tampers, mains, battery and
-comms faults notify. Arming and access are logged quietly.
+comms faults notify, and tampers can be promoted to full emergencies with one
+tick if you want the bell, box and comms attacks to ring keyholders. Arming and
+access are logged quietly, or turned into notifications if you want them.
 
 **Escalates until somebody answers.** Push, then SMS, then repeating voice
 calls, stopping the moment anybody acknowledges from the notification, the
@@ -75,7 +77,23 @@ nothing to look up first. Supply:
 The host fields are optional but strongly recommended. Without them there is
 no way to tell a dead site apart from a dead panel.
 
-Then choose areas, then notification services and recipients.
+Then choose which areas to monitor. Only the areas you pick count towards the
+combined system state, so an unused area the panel still publishes will not
+hold the system at part armed.
+
+Then set notifications, all from the dropdowns with no YAML:
+
+- **Push services.** Pick one or more phones. Choosing several here replaces
+  the old need for a notify group
+- **SMS and voice services.** Optional, used by the escalation ladder
+- **Recipients.** The numbers SMS and voice dial, in E.164 format
+- **Escalate tamper alarms.** Off by default. Turn it on to run the full voice
+  ladder when the bell, box, keypad or comms path is attacked, rather than a
+  quiet fault notification
+- **Activity notifications.** Off by default. Turn it on to be told when a
+  monitored area arms or disarms, and on door access and user changes
+
+Everything except the areas can be changed later, live, from the options.
 
 ## Entities
 

@@ -16,6 +16,7 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -30,15 +31,17 @@ from homeassistant.helpers.selector import (
 from .const import (
     CONF_AREAS,
     CONF_BATTERY_LOW_VOLTS,
+    CONF_ESCALATE_TAMPERS,
     CONF_GATEWAY_HOST,
     CONF_GATEWAY_PORT,
     CONF_LADDER_ROUNDS,
     CONF_MAINTENANCE_HOURS,
+    CONF_NOTIFY_ACTIVITY,
     CONF_PANEL_HOST,
     CONF_PANEL_PORT,
     CONF_PREFIX,
     CONF_PROBE_SECONDS,
-    CONF_PUSH_SERVICE,
+    CONF_PUSH_SERVICES,
     CONF_RECIPIENTS,
     CONF_ROUND_SECONDS,
     CONF_SITE_NAME,
@@ -46,9 +49,11 @@ from .const import (
     CONF_STALE_MINUTES,
     CONF_VOICE_SERVICE,
     DEFAULT_BATTERY_LOW_VOLTS,
+    DEFAULT_ESCALATE_TAMPERS,
     DEFAULT_GATEWAY_PORT,
     DEFAULT_LADDER_ROUNDS,
     DEFAULT_MAINTENANCE_HOURS,
+    DEFAULT_NOTIFY_ACTIVITY,
     DEFAULT_PANEL_PORT,
     DEFAULT_PREFIX,
     DEFAULT_PROBE_SECONDS,
@@ -164,7 +169,10 @@ class TexecomConfigFlow(ConfigFlow, domain=DOMAIN):
                 title=self._data[CONF_SITE_NAME], data=self._data
             )
 
-        return self.async_show_form(step_id="notify", data_schema=_notify_schema({}))
+        services = _notify_service_options(self.hass)
+        return self.async_show_form(
+            step_id="notify", data_schema=_notify_schema({}, services)
+        )
 
     @staticmethod
     @callback
@@ -184,7 +192,8 @@ class TexecomOptionsFlow(OptionsFlow):
             return self.async_create_entry(data=user_input)
 
         current = {**self.config_entry.data, **self.config_entry.options}
-        schema = _notify_schema(current).extend(
+        services = _notify_service_options(self.hass)
+        schema = _notify_schema(current, services).extend(
             {
                 vol.Optional(
                     CONF_STALE_MINUTES,
@@ -243,22 +252,65 @@ class TexecomOptionsFlow(OptionsFlow):
         return self.async_show_form(step_id="init", data_schema=schema)
 
 
-def _notify_schema(current: dict[str, Any]) -> vol.Schema:
+def _notify_service_options(hass: Any) -> list[SelectOptionDict]:
+    """List the notify services Home Assistant currently knows about.
+
+    Presenting these as pickable options means a keyholder chooses phones from
+    a dropdown rather than writing a notify group in YAML. Custom values stay
+    allowed so a service not yet loaded can still be typed.
+    """
+    services = hass.services.async_services().get("notify", {})
+    return [
+        SelectOptionDict(value=f"notify.{name}", label=f"notify.{name}")
+        for name in sorted(services)
+    ]
+
+
+def _notify_schema(
+    current: dict[str, Any], services: list[SelectOptionDict]
+) -> vol.Schema:
     """Build the notification part of the schema."""
     return vol.Schema(
         {
             vol.Required(
-                CONF_PUSH_SERVICE,
-                default=current.get(CONF_PUSH_SERVICE, "notify.notify"),
-            ): str,
+                CONF_PUSH_SERVICES,
+                default=current.get(CONF_PUSH_SERVICES, []),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=services,
+                    multiple=True,
+                    custom_value=True,
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            ),
             vol.Optional(
                 CONF_SMS_SERVICE, default=current.get(CONF_SMS_SERVICE, "")
-            ): str,
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=services,
+                    custom_value=True,
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            ),
             vol.Optional(
                 CONF_VOICE_SERVICE, default=current.get(CONF_VOICE_SERVICE, "")
-            ): str,
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=services,
+                    custom_value=True,
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            ),
             vol.Optional(
                 CONF_RECIPIENTS, default=current.get(CONF_RECIPIENTS, [])
             ): TextSelector(TextSelectorConfig(multiple=True)),
+            vol.Optional(
+                CONF_ESCALATE_TAMPERS,
+                default=current.get(CONF_ESCALATE_TAMPERS, DEFAULT_ESCALATE_TAMPERS),
+            ): BooleanSelector(),
+            vol.Optional(
+                CONF_NOTIFY_ACTIVITY,
+                default=current.get(CONF_NOTIFY_ACTIVITY, DEFAULT_NOTIFY_ACTIVITY),
+            ): BooleanSelector(),
         }
     )

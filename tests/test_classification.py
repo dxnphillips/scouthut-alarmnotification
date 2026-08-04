@@ -12,6 +12,7 @@ from custom_components.texecom_alerts.const import (
     FAULT_EVENTS,
     SILENT_EVENTS,
     SMS_FAULTS,
+    TAMPER_EVENTS,
 )
 
 
@@ -30,6 +31,12 @@ def test_silent_events_are_critical() -> None:
 def test_sms_faults_are_faults() -> None:
     """SMS worthy faults must be classified as faults to reach the check."""
     assert SMS_FAULTS <= FAULT_EVENTS
+
+
+def test_tampers_are_faults() -> None:
+    """Tampers are faults so escalation is opt in, not a reclassification."""
+    assert TAMPER_EVENTS <= FAULT_EVENTS
+    assert not TAMPER_EVENTS & CRITICAL_EVENTS
 
 
 def test_duress_is_silent() -> None:

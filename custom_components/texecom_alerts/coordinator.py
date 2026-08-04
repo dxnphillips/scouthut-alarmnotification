@@ -17,16 +17,22 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     ACTIVITY_EVENTS,
+    ARM_ACTIVITY_EVENTS,
     ARMED_STATES,
+    CONF_AREAS,
+    CONF_ESCALATE_TAMPERS,
     CONF_GATEWAY_HOST,
     CONF_GATEWAY_PORT,
+    CONF_NOTIFY_ACTIVITY,
     CONF_PANEL_HOST,
     CONF_PANEL_PORT,
     CONF_PREFIX,
     CONF_PROBE_SECONDS,
     CONF_STALE_MINUTES,
     CRITICAL_EVENTS,
+    DEFAULT_ESCALATE_TAMPERS,
     DEFAULT_GATEWAY_PORT,
+    DEFAULT_NOTIFY_ACTIVITY,
     DEFAULT_PANEL_PORT,
     DEFAULT_PREFIX,
     DEFAULT_PROBE_SECONDS,
@@ -41,11 +47,24 @@ from .const import (
     SILENT_EVENTS,
     SMS_FAULTS,
     STATUS_TRIGGERED,
+    TAMPER_EVENTS,
 )
 from .models import AreaState, LogEvent
 from .probes import async_tcp_probe
 
 _LOGGER = logging.getLogger(__name__)
+
+_HUMAN_STATUS: dict[str, str] = {
+    "full_armed": "armed away",
+    "part_armed_1": "part armed 1",
+    "part_armed_2": "part armed 2",
+    "part_armed_3": "part armed 3",
+}
+
+
+def _human_status(status: str) -> str:
+    """Render an area status in words for a notification headline."""
+    return _HUMAN_STATUS.get(status, status.replace("_", " "))
 
 
 class TexecomCoordinator:
@@ -69,6 +88,16 @@ class TexecomCoordinator:
         self.probe_interval = timedelta(
             seconds=opts.get(CONF_PROBE_SECONDS, DEFAULT_PROBE_SECONDS)
         )
+        self.escalate_tampers: bool = bool(
+            opts.get(CONF_ESCALATE_TAMPERS, DEFAULT_ESCALATE_TAMPERS)
+        )
+        self.notify_activity: bool = bool(
+            opts.get(CONF_NOTIFY_ACTIVITY, DEFAULT_NOTIFY_ACTIVITY)
+        )
+        # Only the areas chosen at setup count towards the combined state.
+        # Without this, an unused area the panel still publishes would keep the
+        # system reading part armed when every area you monitor is armed.
+        self.monitored: set[str] = {str(a) for a in (opts.get(CONF_AREAS) or [])}
 
         # State
         self.areas: dict[str, AreaState] = {}
@@ -237,6 +266,9 @@ class TexecomCoordinator:
         area_id = str(data.get("id") or data.get("number") or "")
         if not area_id:
             return
+        # Ignore areas the user did not choose to monitor.
+        if self.monitored and area_id not in self.monitored:
+            return
 
         zone = data.get("last_active_zone") or {}
         state = AreaState(
@@ -259,8 +291,44 @@ class TexecomCoordinator:
             state.last_triggered = dt_util.utcnow()
             self.last_activation = state
             self.hass.async_create_task(self._area_triggered(state))
+        else:
+            self._maybe_area_activity(previous, state)
 
         self._notify()
+
+    def _maybe_area_activity(
+        self, previous: AreaState | None, state: AreaState
+    ) -> None:
+        """Notify when a monitored area arms or disarms, if enabled.
+
+        Driven from the area topic rather than the log, so it fires even when
+        the bridge does not emit an open or close log line, and only once the
+        area settles rather than while it counts through entry and exit.
+        """
+        if not self.notify_activity:
+            return
+        prev_status = previous.status if previous else "unknown"
+        if state.status == prev_status:
+            return
+        was_armed = prev_status in ARMED_STATES
+        now_armed = state.status in ARMED_STATES
+        if now_armed and not was_armed:
+            human = _human_status(state.status)
+            self.hass.async_create_task(
+                self._raise(
+                    SEVERITY_ACTIVITY,
+                    f"{state.name} {human}",
+                    f"{state.name} at {self.entry.title} is now {human}.",
+                )
+            )
+        elif state.status == "disarmed" and prev_status != "disarmed":
+            self.hass.async_create_task(
+                self._raise(
+                    SEVERITY_ACTIVITY,
+                    f"{state.name} disarmed",
+                    f"{state.name} at {self.entry.title} was disarmed.",
+                )
+            )
 
     @callback
     def _handle_log(self, msg: mqtt.ReceiveMessage) -> None:
@@ -297,14 +365,24 @@ class TexecomCoordinator:
         # build their own automations without forking this integration.
         self.hass.bus.async_fire(EVENT_TEXECOM, event.as_event_data())
 
-        if severity in (SEVERITY_CRITICAL, SEVERITY_FAULT):
+        # Critical and fault always alert. Activity alerts only when the user
+        # asked for it, and arm and disarm log lines are left to the area topic
+        # so the same arming is not announced twice.
+        notify_activity_event = (
+            self.notify_activity
+            and severity == SEVERITY_ACTIVITY
+            and event_type not in ARM_ACTIVITY_EVENTS
+        )
+        if severity in (SEVERITY_CRITICAL, SEVERITY_FAULT) or notify_activity_event:
             self.hass.async_create_task(self._log_alert(event))
 
-    @staticmethod
-    def _classify(event_type: str) -> str:
+    def _classify(self, event_type: str) -> str:
         if event_type in CRITICAL_EVENTS:
             return SEVERITY_CRITICAL
         if event_type in FAULT_EVENTS:
+            # A tamper is a fault until the user opts to treat it as an attack.
+            if self.escalate_tampers and event_type in TAMPER_EVENTS:
+                return SEVERITY_CRITICAL
             return SEVERITY_FAULT
         if event_type in ACTIVITY_EVENTS:
             return SEVERITY_ACTIVITY
@@ -394,8 +472,10 @@ class TexecomCoordinator:
         area = f" in {', '.join(event.areas)}" if event.areas else ""
         if event.severity == SEVERITY_CRITICAL:
             headline = f"{event.description.upper()} at {self.entry.title}"
-        else:
+        elif event.severity == SEVERITY_FAULT:
             headline = f"Alarm fault: {event.description}"
+        else:
+            headline = f"{event.description} at {self.entry.title}"
         await self._raise(
             event.severity,
             headline,
