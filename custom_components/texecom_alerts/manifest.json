@@ -1,0 +1,13 @@
+{
+  "domain": "texecom_alerts",
+  "name": "Texecom Alerts",
+  "codeowners": ["@dxnphillips"],
+  "config_flow": true,
+  "dependencies": ["mqtt"],
+  "documentation": "https://github.com/dxnphillips/scouthut-alarmnotification",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/dxnphillips/scouthut-alarmnotification/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

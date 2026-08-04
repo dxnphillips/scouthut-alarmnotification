@@ -1,0 +1,35 @@
+test_alerts:
+  name: Test alerts
+  description: >-
+    Run the full escalation ladder with a clearly marked test alert. Let it
+    run all the way to the voice call at least once after any change to the
+    notification services.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Limit to one site. Omit to test every configured site.
+      required: false
+      selector:
+        text:
+
+acknowledge:
+  name: Acknowledge
+  description: Stop a running escalation ladder.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Limit to one site. Omit to acknowledge every site.
+      required: false
+      selector:
+        text:
+
+reset:
+  name: Reset
+  description: Return the escalation engine to idle without notifying anyone.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Limit to one site. Omit to reset every site.
+      required: false
+      selector:
+        text:

@@ -1,0 +1,93 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Texecom Alerts",
+        "description": "Point this at the texecom2mqtt bridge. The host fields are optional but strongly recommended: without them there is no way to tell a dead site apart from a dead panel.",
+        "data": {
+          "site_name": "Site name",
+          "prefix": "MQTT prefix",
+          "panel_host": "Panel address",
+          "panel_port": "Panel port",
+          "gateway_host": "Site gateway address",
+          "gateway_port": "Site gateway port"
+        }
+      },
+      "areas": {
+        "title": "Areas",
+        "description": "These were discovered from retained MQTT messages. Choose the ones to monitor.",
+        "data": {
+          "areas": "Areas"
+        }
+      },
+      "notify": {
+        "title": "Notifications",
+        "description": "Push is required. SMS and voice are optional but are what actually wake somebody at three in the morning. Recipients apply to SMS and voice only.",
+        "data": {
+          "push_service": "Push notify service",
+          "sms_service": "SMS notify service",
+          "voice_service": "Voice call notify service",
+          "recipients": "Recipient numbers in E.164 format"
+        }
+      }
+    },
+    "error": {
+      "no_areas": "No areas seen on that prefix. Check the bridge is running and the prefix matches its configuration."
+    },
+    "abort": {
+      "already_configured": "This site is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Texecom Alerts options",
+        "description": "Changes take effect immediately. No restart needed.",
+        "data": {
+          "push_service": "Push notify service",
+          "sms_service": "SMS notify service",
+          "voice_service": "Voice call notify service",
+          "recipients": "Recipient numbers in E.164 format",
+          "stale_minutes": "Treat data as stale after (minutes)",
+          "battery_low_volts": "Standby battery low threshold (V)",
+          "ladder_rounds": "Escalation rounds",
+          "round_seconds": "Seconds to wait per round",
+          "probe_seconds": "Reachability probe interval (seconds)",
+          "maintenance_hours": "Maintenance mode expires after (hours)"
+        }
+      }
+    }
+  },
+  "services": {
+    "test_alerts": {
+      "name": "Test alerts",
+      "description": "Run the full escalation ladder with a clearly marked test alert.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Limit to one site. Omit to test every configured site."
+        }
+      }
+    },
+    "acknowledge": {
+      "name": "Acknowledge",
+      "description": "Stop a running escalation ladder.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Limit to one site. Omit to acknowledge every site."
+        }
+      }
+    },
+    "reset": {
+      "name": "Reset",
+      "description": "Return the escalation engine to idle without notifying anyone.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Limit to one site. Omit to reset every site."
+        }
+      }
+    }
+  }
+}
