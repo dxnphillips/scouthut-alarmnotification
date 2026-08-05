@@ -3,7 +3,7 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
-## 1.3.2
+## 1.3.3
 
 - Area sensors no longer sit unavailable. They are now added as each area is
   discovered over MQTT, rather than only for the areas present at the instant
