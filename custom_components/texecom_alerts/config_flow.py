@@ -30,6 +30,7 @@ from homeassistant.helpers.selector import (
 
 from .const import (
     CONF_AREAS,
+    CONF_AUTO_PHONES,
     CONF_BATTERY_LOW_VOLTS,
     CONF_CRITICAL_SOUND,
     CONF_ESCALATE_TAMPERS,
@@ -49,8 +50,10 @@ from .const import (
     CONF_SITE_NAME,
     CONF_SMS_SERVICE,
     CONF_STALE_MINUTES,
+    CONF_TTS_SIREN_SERVICES,
     CONF_VOICE_SERVICE,
     CONF_WEBHOOK_ID,
+    DEFAULT_AUTO_PHONES,
     DEFAULT_BATTERY_LOW_VOLTS,
     DEFAULT_CRITICAL_SOUND,
     DEFAULT_ESCALATE_TAMPERS,
@@ -279,7 +282,11 @@ def _notify_schema(
     """Build the notification part of the schema."""
     return vol.Schema(
         {
-            vol.Required(
+            vol.Optional(
+                CONF_AUTO_PHONES,
+                default=current.get(CONF_AUTO_PHONES, DEFAULT_AUTO_PHONES),
+            ): BooleanSelector(),
+            vol.Optional(
                 CONF_PUSH_SERVICES,
                 default=current.get(CONF_PUSH_SERVICES, []),
             ): SelectSelector(
@@ -327,5 +334,16 @@ def _notify_schema(
                 CONF_CRITICAL_SOUND,
                 default=current.get(CONF_CRITICAL_SOUND, DEFAULT_CRITICAL_SOUND),
             ): str,
+            vol.Optional(
+                CONF_TTS_SIREN_SERVICES,
+                default=current.get(CONF_TTS_SIREN_SERVICES, []),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=services,
+                    multiple=True,
+                    custom_value=True,
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            ),
         }
     )

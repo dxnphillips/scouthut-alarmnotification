@@ -24,14 +24,16 @@
         "title": "Notifications",
         "description": "Pick one or more phones for push. Choose them from the dropdown, no notify group needed. SMS and voice are optional but are what actually wake somebody at three in the morning. Recipient numbers apply to SMS and voice only.",
         "data": {
-          "push_services": "Push notify services (choose one or more phones)",
+          "auto_phones": "Send to every Companion app phone automatically, telling iOS and Android apart on their own",
+          "push_services": "Phones for push (only used when automatic is off)",
           "sms_service": "SMS notify service",
           "voice_service": "Voice call notify service",
           "recipients": "Recipient numbers for SMS and voice in E.164 format",
           "escalate_tampers": "Escalate tamper alarms as emergencies (voice calls)",
           "notify_activity": "Send activity notifications such as arming and access",
           "phone_ack": "Let keyholders acknowledge by phone (Twilio, needs a public HTTPS URL Twilio trusts)",
-          "critical_sound": "Emergency sound (iOS, filename of a sound imported into the Companion app, or default)"
+          "critical_sound": "Emergency sound (iOS, filename of a sound imported into the Companion app, or default)",
+          "tts_siren_services": "Android phones for a maximum volume spoken siren (only used when automatic is off)"
         }
       }
     },
@@ -48,7 +50,8 @@
         "title": "Texecom Alerts options",
         "description": "Changes take effect immediately. No restart needed.",
         "data": {
-          "push_services": "Push notify services (choose one or more phones)",
+          "auto_phones": "Send to every Companion app phone automatically, telling iOS and Android apart on their own",
+          "push_services": "Phones for push (only used when automatic is off)",
           "sms_service": "SMS notify service",
           "voice_service": "Voice call notify service",
           "recipients": "Recipient numbers for SMS and voice in E.164 format",
@@ -56,6 +59,7 @@
           "notify_activity": "Send activity notifications such as arming and access",
           "phone_ack": "Let keyholders acknowledge by phone (Twilio, needs a public HTTPS URL Twilio trusts)",
           "critical_sound": "Emergency sound (iOS, filename of a sound imported into the Companion app, or default)",
+          "tts_siren_services": "Android phones for a maximum volume spoken siren (only used when automatic is off)",
           "stale_minutes": "Treat data as stale after (minutes)",
           "battery_low_volts": "Standby battery low threshold (V)",
           "ladder_rounds": "Escalation rounds",

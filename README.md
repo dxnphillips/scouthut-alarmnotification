@@ -83,8 +83,12 @@ hold the system at part armed.
 
 Then set notifications, all from the dropdowns with no YAML:
 
-- **Push services.** Pick one or more phones. Choosing several here replaces
-  the old need for a notify group
+- **Automatic phones.** On by default. Every Home Assistant Companion phone is
+  found and used on its own, and iOS and Android are told apart automatically,
+  so there is nothing to pick and nothing to keep in step as phones come and go.
+  A new keyholder who installs the Companion app is simply included
+- **Push services.** Only used when automatic phones is off. Pick the phones by
+  hand from the dropdown, no notify group needed
 - **SMS and voice services.** Optional, used by the escalation ladder
 - **Recipients.** The numbers SMS and voice dial, in E.164 format
 - **Escalate tamper alarms.** Off by default. Turn it on to run the full voice
@@ -159,6 +163,14 @@ which each keyholder does once.
 into the Companion app under Settings, Companion app, Notifications, Sounds. It
 must be a 32 bit float 48000 Hz wav. Put its filename, extension included, in
 the **Emergency sound** option, and restart the phone once so it registers.
+
+**A spoken siren at maximum volume on Android.** On top of the alarm push, each
+Android phone also receives a spoken alert that forces the alarm volume to the
+top, plays, then puts it back, so a phone left quiet is still loud. This happens
+on its own when automatic phones is on, since the integration knows which phones
+are Android. With automatic phones off, list the Android phones under the
+maximum volume siren option instead. It never reaches an iPhone, so nobody hears
+a robotic voice reading a notification.
 
 **Acknowledging silences it everywhere.** Acknowledging, or disarming the panel,
 clears the loud alarm notification from every phone, not just the one that

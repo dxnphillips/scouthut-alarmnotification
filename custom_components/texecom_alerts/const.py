@@ -24,6 +24,11 @@ CONF_PANEL_PORT: Final = "panel_port"
 CONF_GATEWAY_HOST: Final = "gateway_host"
 CONF_GATEWAY_PORT: Final = "gateway_port"
 
+# When on, every Home Assistant Companion phone is discovered and used
+# automatically, and iOS and Android are told apart on their own, so no phones
+# need choosing. The manual push list below is only used when this is off.
+CONF_AUTO_PHONES: Final = "auto_phones"
+
 # Push accepts a list so several phones can be chosen in the UI without a
 # notify group. CONF_PUSH_SERVICE is the earlier single value form, kept so an
 # entry configured before the list existed still resolves.
@@ -36,6 +41,9 @@ CONF_RECIPIENTS: Final = "recipients"
 CONF_ESCALATE_TAMPERS: Final = "escalate_tampers"
 CONF_NOTIFY_ACTIVITY: Final = "notify_activity"
 CONF_CRITICAL_SOUND: Final = "critical_sound"
+# Android only notify services that also get a spoken siren at maximum alarm
+# volume. Kept separate because the payload would show as the word TTS on iOS.
+CONF_TTS_SIREN_SERVICES: Final = "tts_siren_services"
 
 # Inbound acknowledgement by phone, for keyholders without Home Assistant.
 CONF_PHONE_ACK: Final = "phone_ack"
@@ -63,11 +71,13 @@ DEFAULT_ESCALATE_TAMPERS: Final = False
 DEFAULT_NOTIFY_ACTIVITY: Final = False
 DEFAULT_PHONE_ACK: Final = False
 DEFAULT_CRITICAL_SOUND: Final = "default"
+DEFAULT_AUTO_PHONES: Final = True
 
 # Notification tags for the loud alerts, cleared from every phone when the
 # ladder is acknowledged, stopped by a disarm, or reset.
 TAG_CRITICAL: Final = "texecom_critical"
 TAG_CRITICAL_SECOND: Final = "texecom_critical_second"
+TAG_SIREN: Final = "texecom_siren"
 TAG_ACK: Final = "texecom_ack"
 
 DISCOVERY_SECONDS: Final = 6

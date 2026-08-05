@@ -17,6 +17,12 @@ Emergency delivery and acknowledgement fixes from testing on real phones.
 - Acknowledging, disarming or resetting clears the loud alarm notification from
   every phone. Without this an iOS critical alert, which cannot be replaced by
   tag, sat on the phone after the alarm was dealt with.
+- Phones can be chosen automatically. With automatic phones on, every Companion
+  app phone is discovered and used, and iOS and Android are told apart on their
+  own, so nothing needs picking or keeping in step as keyholders come and go.
+- Android phones also receive a spoken siren at maximum alarm volume, forcing
+  the alarm volume up so a quiet phone is still loud. It is sent only to Android,
+  never to an iPhone that would show it as text.
 - A custom emergency sound can be set, so the critical alert uses a siren
   imported into the Companion app on iOS rather than the default tone.
 - The last log event sensor shows a readable label. RemoteCommand reads as

@@ -16,10 +16,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.network import NoURLAvailableError
+from homeassistant.util import slugify
 
 from .const import (
     ACTION_ACK,
     ACTION_ATTEND,
+    CONF_AUTO_PHONES,
     CONF_CRITICAL_SOUND,
     CONF_LADDER_ROUNDS,
     CONF_PHONE_ACK,
@@ -28,8 +30,10 @@ from .const import (
     CONF_RECIPIENTS,
     CONF_ROUND_SECONDS,
     CONF_SMS_SERVICE,
+    CONF_TTS_SIREN_SERVICES,
     CONF_VOICE_SERVICE,
     CONF_WEBHOOK_ID,
+    DEFAULT_AUTO_PHONES,
     DEFAULT_CRITICAL_SOUND,
     DEFAULT_LADDER_ROUNDS,
     DEFAULT_ROUND_SECONDS,
@@ -44,6 +48,7 @@ from .const import (
     TAG_ACK,
     TAG_CRITICAL,
     TAG_CRITICAL_SECOND,
+    TAG_SIREN,
 )
 from .models import Alert
 
@@ -83,13 +88,36 @@ class AlertingEngine:
     def _opt(self, key: str, default: Any = None) -> Any:
         return {**self.entry.data, **self.entry.options}.get(key, default)
 
+    def _mobile_app_phones(self) -> tuple[list[str], list[str]]:
+        """Discover every Companion phone, split into all and Android only.
+
+        The mobile_app integration keeps a config entry per phone carrying its
+        device name and operating system, so the notify service and the platform
+        can both be worked out without anyone choosing anything.
+        """
+        everyone: list[str] = []
+        android: list[str] = []
+        for entry in self.hass.config_entries.async_entries("mobile_app"):
+            name = entry.data.get("device_name")
+            if not name:
+                continue
+            service = f"notify.mobile_app_{slugify(name)}"
+            everyone.append(service)
+            os_name = str(entry.data.get("os_name") or "")
+            app_id = str(entry.data.get("app_id") or "")
+            if "android" in os_name.lower() or "android" in app_id.lower():
+                android.append(service)
+        return everyone, android
+
     def _push_services(self) -> list[str]:
         """Return every push service to notify.
 
-        Several phones can be chosen in the UI, so this is a list. The older
-        single value key is honoured so an entry configured before the list
-        existed keeps working.
+        With automatic phones on, that is every Companion phone. Otherwise it is
+        the manual list, with the older single value key honoured so an entry
+        configured before the list existed keeps working.
         """
+        if self._opt(CONF_AUTO_PHONES, DEFAULT_AUTO_PHONES):
+            return self._mobile_app_phones()[0]
         raw = self._opt(CONF_PUSH_SERVICES)
         if not raw:
             legacy = self._opt(CONF_PUSH_SERVICE)
@@ -152,10 +180,23 @@ class AlertingEngine:
         # the only way to stop it lingering after the alarm is dealt with.
         self.hass.async_create_task(self._clear_critical_push())
 
+    def _tts_siren_services(self) -> list[str]:
+        """Return the Android services that also get a max volume spoken siren.
+
+        With automatic phones on, the Android phones are found on their own.
+        """
+        if self._opt(CONF_AUTO_PHONES, DEFAULT_AUTO_PHONES):
+            return self._mobile_app_phones()[1]
+        raw = self._opt(CONF_TTS_SIREN_SERVICES) or []
+        if isinstance(raw, str):
+            raw = [raw]
+        return [service for service in raw if service]
+
     async def _clear_critical_push(self) -> None:
         """Clear the loud alarm notifications from every push device."""
-        for service in self._push_services():
-            for tag in (TAG_CRITICAL, TAG_CRITICAL_SECOND):
+        tags = (TAG_CRITICAL, TAG_CRITICAL_SECOND, TAG_SIREN)
+        for service in set(self._push_services()) | set(self._tts_siren_services()):
+            for tag in tags:
                 await self._call(
                     service,
                     {"message": "clear_notification", "data": {"tag": tag}},
@@ -374,6 +415,32 @@ class AlertingEngine:
 
         payload = {"title": title, "message": message, "data": data}
         for service in self._push_services():
+            await self._call(service, payload)
+
+        if critical and not alert.silent:
+            await self._send_tts_siren(alert)
+
+    async def _send_tts_siren(self, alert: Alert) -> None:
+        """Speak the alert at maximum alarm volume on the chosen Android phones.
+
+        alarm_stream_max forces the alarm volume to the top, plays, then puts it
+        back. This is a text to speech notification, so it only goes to the
+        services named as Android, never to an iPhone that would show the word.
+        """
+        services = self._tts_siren_services()
+        if not services:
+            return
+        payload = {
+            "message": "TTS",
+            "data": {
+                "ttl": 0,
+                "priority": "high",
+                "media_stream": "alarm_stream_max",
+                "tts_text": f"{alert.headline}. {alert.detail}",
+                "tag": TAG_SIREN,
+            },
+        }
+        for service in services:
             await self._call(service, payload)
 
     async def _send_sms(self, alert: Alert) -> None:
