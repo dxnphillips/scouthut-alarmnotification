@@ -138,16 +138,27 @@ These are the strongest alerts an app is allowed to send. They are not the
 government emergency alerts, which travel over cell broadcast and are closed to
 apps, but they override silent and Do Not Disturb in the same spirit.
 
-**A custom siren.** For something more obnoxious than the default tone, set the
-**Emergency sound** option:
+**The low maintenance setup.** You do not need a custom sound at all. Leave the
+**Emergency sound** option at `default` and the alert is already loud on both
+platforms. The only per phone step is the one time permission or channel below,
+which each keyholder does once.
 
-- **iOS.** Import a sound into the Companion app, under Settings, Companion app,
-  Notifications, Sounds. It must be a 32 bit float 48000 Hz wav. Put its
-  filename, extension included, in the Emergency sound option. Restart the phone
-  once so it registers.
-- **Android.** The sound belongs to the alarm stream channel. Change it under
-  Settings, Companion app, Notification channels, so the option does not apply
-  there.
+- **iOS.** Grant the Companion app **Critical Alerts** once. That is the whole
+  job. The default critical tone plays loud and overrides silent and Do Not
+  Disturb, and the ladder repeats it each round until somebody acknowledges. A
+  custom siren cannot be pushed to iOS remotely, so only bother with one if the
+  default tone is not distinctive enough for you.
+- **Android.** Set the tone once on the alarm channel. Press **Test alerts**
+  first so the channel exists, then go to Companion app, Settings, Companion
+  app, Notification channels, open the alarm channel and set its **Sound** to a
+  siren of your choice. Because the alert plays on the alarm stream it already
+  sounds through silent and Do Not Disturb, so the tone is the only thing to
+  pick.
+
+**A custom siren on iOS.** If you do want a bespoke tone on iOS, import a sound
+into the Companion app under Settings, Companion app, Notifications, Sounds. It
+must be a 32 bit float 48000 Hz wav. Put its filename, extension included, in
+the **Emergency sound** option, and restart the phone once so it registers.
 
 **Acknowledging silences it everywhere.** Acknowledging, or disarming the panel,
 clears the loud alarm notification from every phone, not just the one that
@@ -237,8 +248,13 @@ morning.
       as an emergency bypass on iOS or a priority contact on Android. An
       unrecognised number at three in the morning gets silenced, and this is
       the most common reason these setups fail in practice
-- [ ] Grant the Companion app critical alert permission in iOS Settings. It
-      is not a Home Assistant setting. Test with the phone in Do Not Disturb
+- [ ] On each iOS phone, grant the Companion app critical alert permission in
+      iOS Settings. It is not a Home Assistant setting. With that granted the
+      default tone is already loud, so there is nothing else to set. Test with
+      the phone in Do Not Disturb
+- [ ] On each Android phone, press Test alerts once, then set the alarm channel
+      tone under Companion app, Notification channels. It already plays on the
+      alarm stream, so the tone is the only choice to make
 - [ ] Pull the link and confirm the site alert fires
 
 ## What it deliberately does not do
