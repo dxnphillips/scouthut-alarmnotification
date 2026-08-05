@@ -3,10 +3,22 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
-## 1.1.1
+## 1.2.0
 
-Emergency delivery and acknowledgement fixes from testing on real phones.
+Emergency delivery, car screens, automatic phones and phone acknowledgement,
+from testing on real phones.
 
+- Choose phones automatically. With automatic phones on, the default, every
+  Home Assistant Companion phone is discovered and used, and iOS and Android are
+  told apart on their own, so nothing needs picking or keeping in step.
+- Acknowledge from a phone through a relay. An Acknowledgement relay URL option
+  lets Twilio talk to a trusted relay, such as a Twilio Function, that forwards
+  to Home Assistant, so a Home Assistant on a self signed certificate can still
+  take a press of a key or a reply to the SMS. A full Twilio walkthrough is in
+  docs/twilio-setup.md.
+- Android phones also receive a spoken siren at maximum alarm volume, forcing
+  the alarm volume up so a quiet phone is still loud. It is sent only to Android,
+  never to an iPhone that would show it as text.
 - Emergency pushes are now genuinely loud on Android. They use the documented
   alarm_stream channel, which plays through the ringer switch and Do Not
   Disturb, rather than a value that only applies to text to speech and left
@@ -17,12 +29,7 @@ Emergency delivery and acknowledgement fixes from testing on real phones.
 - Acknowledging, disarming or resetting clears the loud alarm notification from
   every phone. Without this an iOS critical alert, which cannot be replaced by
   tag, sat on the phone after the alarm was dealt with.
-- Phones can be chosen automatically. With automatic phones on, every Companion
-  app phone is discovered and used, and iOS and Android are told apart on their
-  own, so nothing needs picking or keeping in step as keyholders come and go.
-- Android phones also receive a spoken siren at maximum alarm volume, forcing
-  the alarm volume up so a quiet phone is still loud. It is sent only to Android,
-  never to an iPhone that would show it as text.
+- Disarming the panel stops a running escalation on its own.
 - A custom emergency sound can be set, so the critical alert uses a siren
   imported into the Companion app on iOS rather than the default tone.
 - The last log event sensor shows a readable label. RemoteCommand reads as
