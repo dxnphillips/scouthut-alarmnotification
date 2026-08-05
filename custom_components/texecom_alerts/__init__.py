@@ -6,13 +6,15 @@ import logging
 from dataclasses import dataclass
 
 import voluptuous as vol
+from homeassistant.components import webhook
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 
 from .alerting import AlertingEngine
-from .const import DOMAIN, PLATFORMS
+from .const import CONF_WEBHOOK_ID, DOMAIN, PLATFORMS
 from .coordinator import TexecomCoordinator
+from .webhook_ack import async_register_webhook, async_unregister_webhook
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,6 +38,14 @@ type TexecomConfigEntry = ConfigEntry[TexecomData]
 
 async def async_setup_entry(hass: HomeAssistant, entry: TexecomConfigEntry) -> bool:
     """Set up Texecom Alerts from a config entry."""
+    # Give the entry a stable webhook id if it predates phone acknowledgement.
+    # Done before the update listener is added, so it does not trigger a reload.
+    if not entry.data.get(CONF_WEBHOOK_ID):
+        hass.config_entries.async_update_entry(
+            entry,
+            data={**entry.data, CONF_WEBHOOK_ID: webhook.async_generate_id()},
+        )
+
     coordinator = TexecomCoordinator(hass, entry)
     alerting = AlertingEngine(hass, entry, coordinator)
 
@@ -43,6 +53,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TexecomConfigEntry) -> b
     await coordinator.async_setup()
 
     entry.runtime_data = TexecomData(coordinator=coordinator, alerting=alerting)
+    async_register_webhook(hass, entry)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_reload))
@@ -55,6 +66,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: TexecomConfigEntry) -> 
     """Unload a config entry."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
+        async_unregister_webhook(hass, entry)
         await entry.runtime_data.coordinator.async_shutdown()
         await entry.runtime_data.alerting.async_shutdown()
     return unloaded

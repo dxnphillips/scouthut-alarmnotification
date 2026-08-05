@@ -9,9 +9,14 @@ from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.core import HomeAssistant
 
 from . import TexecomConfigEntry
-from .const import CONF_GATEWAY_HOST, CONF_PANEL_HOST, CONF_RECIPIENTS
+from .const import (
+    CONF_GATEWAY_HOST,
+    CONF_PANEL_HOST,
+    CONF_RECIPIENTS,
+    CONF_WEBHOOK_ID,
+)
 
-REDACT = {CONF_RECIPIENTS, CONF_PANEL_HOST, CONF_GATEWAY_HOST}
+REDACT = {CONF_RECIPIENTS, CONF_PANEL_HOST, CONF_GATEWAY_HOST, CONF_WEBHOOK_ID}
 
 
 async def async_get_config_entry_diagnostics(

@@ -11,20 +11,24 @@ import asyncio
 import logging
 from typing import Any
 
+from homeassistant.components import webhook
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.network import NoURLAvailableError
 
 from .const import (
     ACTION_ACK,
     ACTION_ATTEND,
     CONF_LADDER_ROUNDS,
+    CONF_PHONE_ACK,
     CONF_PUSH_SERVICE,
     CONF_PUSH_SERVICES,
     CONF_RECIPIENTS,
     CONF_ROUND_SECONDS,
     CONF_SMS_SERVICE,
     CONF_VOICE_SERVICE,
+    CONF_WEBHOOK_ID,
     DEFAULT_LADDER_ROUNDS,
     DEFAULT_ROUND_SECONDS,
     ESCALATION_ACKNOWLEDGED,
@@ -312,6 +316,34 @@ class AlertingEngine:
             payload["target"] = list(recipients)
         await self._call(self._opt(CONF_SMS_SERVICE), payload)
 
+    def spoken_alert(self) -> str:
+        """Return the current alert as a spoken sentence for a phone call."""
+        alert = self.current
+        if alert is None:
+            return "There is no active alarm."
+        return f"{alert.headline}. {alert.detail}"
+
+    def _voice_ack_url(self) -> str | None:
+        """Return the acknowledgement webhook URL, if phone ack is usable.
+
+        The Twilio call notify platform treats a message that is a URL as a
+        TwiML source, so pointing it here lets the call speak the alert and
+        collect a keypress rather than just playing a fixed sentence.
+        """
+        if not self._opt(CONF_PHONE_ACK):
+            return None
+        webhook_id = self.entry.data.get(CONF_WEBHOOK_ID)
+        if not webhook_id:
+            return None
+        try:
+            return webhook.async_generate_url(self.hass, webhook_id)
+        except NoURLAvailableError:
+            _LOGGER.warning(
+                "Phone acknowledgement is on but no external URL is set, so "
+                "the voice call cannot reach the acknowledgement webhook"
+            )
+            return None
+
     async def _send_voice(self, alert: Alert) -> None:
         # The message repeats itself because people answer halfway through
         # the first sentence.
@@ -320,7 +352,10 @@ class AlertingEngine:
             f"Repeating. {alert.headline}. {alert.detail}"
         )
         recipients = self._opt(CONF_RECIPIENTS) or []
-        payload: dict[str, Any] = {"message": spoken}
+        # With phone acknowledgement on, send the call to the TwiML webhook so
+        # the keyholder can press a key, rather than a one way spoken message.
+        message = self._voice_ack_url() or spoken
+        payload: dict[str, Any] = {"message": message}
         if recipients:
             payload["target"] = list(recipients)
         await self._call(self._opt(CONF_VOICE_SERVICE), payload)

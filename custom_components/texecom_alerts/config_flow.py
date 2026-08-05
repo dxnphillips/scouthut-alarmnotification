@@ -7,7 +7,7 @@ import json
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.components import mqtt
+from homeassistant.components import mqtt, webhook
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -39,6 +39,7 @@ from .const import (
     CONF_NOTIFY_ACTIVITY,
     CONF_PANEL_HOST,
     CONF_PANEL_PORT,
+    CONF_PHONE_ACK,
     CONF_PREFIX,
     CONF_PROBE_SECONDS,
     CONF_PUSH_SERVICES,
@@ -48,6 +49,7 @@ from .const import (
     CONF_SMS_SERVICE,
     CONF_STALE_MINUTES,
     CONF_VOICE_SERVICE,
+    CONF_WEBHOOK_ID,
     DEFAULT_BATTERY_LOW_VOLTS,
     DEFAULT_ESCALATE_TAMPERS,
     DEFAULT_GATEWAY_PORT,
@@ -55,6 +57,7 @@ from .const import (
     DEFAULT_MAINTENANCE_HOURS,
     DEFAULT_NOTIFY_ACTIVITY,
     DEFAULT_PANEL_PORT,
+    DEFAULT_PHONE_ACK,
     DEFAULT_PREFIX,
     DEFAULT_PROBE_SECONDS,
     DEFAULT_ROUND_SECONDS,
@@ -165,6 +168,8 @@ class TexecomConfigFlow(ConfigFlow, domain=DOMAIN):
         """Notification channels and recipients."""
         if user_input is not None:
             self._data.update(user_input)
+            # Mint the acknowledgement webhook id up front so its URL is stable.
+            self._data[CONF_WEBHOOK_ID] = webhook.async_generate_id()
             return self.async_create_entry(
                 title=self._data[CONF_SITE_NAME], data=self._data
             )
@@ -311,6 +316,10 @@ def _notify_schema(
             vol.Optional(
                 CONF_NOTIFY_ACTIVITY,
                 default=current.get(CONF_NOTIFY_ACTIVITY, DEFAULT_NOTIFY_ACTIVITY),
+            ): BooleanSelector(),
+            vol.Optional(
+                CONF_PHONE_ACK,
+                default=current.get(CONF_PHONE_ACK, DEFAULT_PHONE_ACK),
             ): BooleanSelector(),
         }
     )

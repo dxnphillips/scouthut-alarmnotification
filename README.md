@@ -119,6 +119,37 @@ Everything except the areas can be changed later, live, from the options.
 `texecom_alerts.test_alerts`, `texecom_alerts.acknowledge`,
 `texecom_alerts.reset`.
 
+## Acknowledging alerts
+
+Acknowledgement stops the ladder for everyone and tells the other keyholders
+who responded. Answering a phone call does not by itself acknowledge. From
+Home Assistant there are three ways:
+
+- the Companion app notification buttons, Acknowledge and Attending
+- the dashboard button, `button.*_acknowledge`
+- the service, `texecom_alerts.acknowledge`
+
+### Acknowledging by phone, for keyholders without Home Assistant
+
+Turn on **Let keyholders acknowledge by phone** in the options. A keyholder
+can then press **1** on the voice call, or reply **ACK** to the SMS, to stop
+the escalation. Both arrive at a webhook this integration registers, one per
+site. The address is written to the Home Assistant log when the option is on.
+
+Wiring, using the Twilio notify services you already point at:
+
+- **Voice.** Nothing else to do. With the option on, the call is sent to the
+  webhook so it can speak the alert and collect the keypress.
+- **SMS.** In the Twilio console, set the phone number's Messaging webhook to
+  the address from the log, so replies reach the integration.
+
+**Twilio needs a certificate it trusts.** It refuses a self signed
+certificate and will silently drop the callback, so phone acknowledgement
+needs Home Assistant reachable on a publicly trusted HTTPS URL. A real
+certificate through the DuckDNS add on, Nabu Casa Cloud, or a reverse proxy
+that terminates a valid certificate all work. A self signed certificate on a
+public address does not.
+
 ## Building your own automations
 
 Every classified event is also fired on the bus as `texecom_alerts_event`,

@@ -36,6 +36,10 @@ CONF_RECIPIENTS: Final = "recipients"
 CONF_ESCALATE_TAMPERS: Final = "escalate_tampers"
 CONF_NOTIFY_ACTIVITY: Final = "notify_activity"
 
+# Inbound acknowledgement by phone, for keyholders without Home Assistant.
+CONF_PHONE_ACK: Final = "phone_ack"
+CONF_WEBHOOK_ID: Final = "webhook_id"
+
 CONF_STALE_MINUTES: Final = "stale_minutes"
 CONF_BATTERY_LOW_VOLTS: Final = "battery_low_volts"
 CONF_LADDER_ROUNDS: Final = "ladder_rounds"
@@ -56,6 +60,7 @@ DEFAULT_PROBE_SECONDS: Final = 60
 DEFAULT_MAINTENANCE_HOURS: Final = 4
 DEFAULT_ESCALATE_TAMPERS: Final = False
 DEFAULT_NOTIFY_ACTIVITY: Final = False
+DEFAULT_PHONE_ACK: Final = False
 
 DISCOVERY_SECONDS: Final = 6
 PROBE_TIMEOUT: Final = 5

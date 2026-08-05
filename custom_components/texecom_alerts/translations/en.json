@@ -29,7 +29,8 @@
           "voice_service": "Voice call notify service",
           "recipients": "Recipient numbers for SMS and voice in E.164 format",
           "escalate_tampers": "Escalate tamper alarms as emergencies (voice calls)",
-          "notify_activity": "Send activity notifications such as arming and access"
+          "notify_activity": "Send activity notifications such as arming and access",
+          "phone_ack": "Let keyholders acknowledge by phone (Twilio, needs a public HTTPS URL Twilio trusts)"
         }
       }
     },
@@ -52,6 +53,7 @@
           "recipients": "Recipient numbers for SMS and voice in E.164 format",
           "escalate_tampers": "Escalate tamper alarms as emergencies (voice calls)",
           "notify_activity": "Send activity notifications such as arming and access",
+          "phone_ack": "Let keyholders acknowledge by phone (Twilio, needs a public HTTPS URL Twilio trusts)",
           "stale_minutes": "Treat data as stale after (minutes)",
           "battery_low_volts": "Standby battery low threshold (V)",
           "ladder_rounds": "Escalation rounds",
