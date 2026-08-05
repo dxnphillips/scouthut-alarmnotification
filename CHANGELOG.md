@@ -3,6 +3,13 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.2.1
+
+- The alarm SMS now tells the keyholder to reply ACK to acknowledge, so a phone
+  only keyholder is not left guessing how to stop the alerts. It is added only
+  on a real alarm with phone acknowledgement on, since a fault SMS has no
+  running ladder for a reply to stop. The voice call already says to press a key.
+
 ## 1.2.0
 
 Emergency delivery, car screens, automatic phones and phone acknowledgement,
@@ -15,8 +22,7 @@ from testing on real phones.
   lets Twilio talk to a trusted relay, such as a Twilio Function, that forwards
   to Home Assistant, so a Home Assistant on a self signed certificate can still
   take a press of a key or a reply to the SMS. A full Twilio walkthrough is in
-  docs/twilio-setup.md. The alarm SMS now tells the keyholder to reply ACK, and
-  the voice call to press a key, so nobody has to guess how to stop it.
+  docs/twilio-setup.md.
 - Android phones also receive a spoken siren at maximum alarm volume, forcing
   the alarm volume up so a quiet phone is still loud. It is sent only to Android,
   never to an iPhone that would show it as text.
