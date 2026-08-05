@@ -22,6 +22,10 @@ comms faults notify, and tampers can be promoted to full emergencies with one
 tick if you want the bell, box and comms attacks to ring keyholders. Arming and
 access are logged quietly, or turned into notifications if you want them.
 
+**Watches zones for tamper and fault**, naming the zone, so a permanent tamper
+zone that only shows on the zone feed still raises an alert rather than passing
+unseen. A zone tamper follows the same escalate tampers choice as any other.
+
 **Escalates until somebody answers.** Push, then SMS, then repeating voice
 calls, stopping the moment anybody acknowledges from the notification, the
 dashboard or a service call.
@@ -115,6 +119,7 @@ Everything except the areas can be changed later, live, from the options.
 | `binary_sensor.*_data_stale` | Bridge up but panel silent |
 | `binary_sensor.*_site_reachable` | TCP probe to the site gateway |
 | `binary_sensor.*_panel_reachable` | Panel in contact, from data still flowing |
+| `binary_sensor.*_zone_problem` | Any zone in tamper or fault, a permanent tamper zone included |
 | `switch.*_maintenance_mode` | Suppresses faults, never suppresses alarms |
 | `button.*_test_alerts` | Runs the full ladder with a marked test |
 | `button.*_acknowledge` | Stops a running ladder |

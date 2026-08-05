@@ -3,6 +3,16 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.3.0
+
+- Zone monitoring. Each zone is now watched for a tamper or a fault, so a
+  permanent tamper zone, or any trouble that shows only on the zone feed rather
+  than as a panel log event, raises an alert with the zone named. A zone tamper
+  follows the escalate tampers choice, and a new zone problem binary sensor
+  lists any zones currently in trouble. Active and secure zones are left alone,
+  since an activation reaches the ladder through the area topic and normal
+  movement while disarmed is not worth a word.
+
 ## 1.2.3
 
 - Disarming one area no longer silences an activation in another. The

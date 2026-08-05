@@ -64,6 +64,25 @@ def _human_status(status: str) -> str:
     return _HUMAN_STATUS.get(status, status.replace("_", " "))
 
 
+def _zone_condition(status: Any) -> str:
+    """Map a raw zone status to normal, active, tamper or fault.
+
+    The bridge zone status is one of the project's untested assumptions, so this
+    is deliberately forgiving: it matches the words tamper, short, mask and
+    fault wherever they appear, and also the classic Texecom numeric encoding
+    where 0 is secure, 1 active, 2 tamper and 3 short. Anything unrecognised is
+    treated as normal so a surprise value never invents a fault.
+    """
+    text = str(status).strip().lower()
+    if "tamper" in text or text == "2":
+        return "tamper"
+    if text == "3" or any(word in text for word in ("short", "mask", "fault")):
+        return "fault"
+    if text in ("1", "active", "open", "true", "on"):
+        return "active"
+    return "normal"
+
+
 class TexecomCoordinator:
     """Owns the panel state model and everything that feeds it."""
 
@@ -96,6 +115,8 @@ class TexecomCoordinator:
 
         # State
         self.areas: dict[str, AreaState] = {}
+        # Zones currently in a tamper or fault condition, name to condition.
+        self.zone_problems: dict[str, str] = {}
         self.power: dict[str, float] = {}
         self.bridge_online: bool | None = None
         self.site_reachable: bool | None = None
@@ -227,13 +248,55 @@ class TexecomCoordinator:
 
     @callback
     def _handle_zone(self, msg: mqtt.ReceiveMessage) -> None:
-        """Zone traffic only refreshes the liveness timestamp.
+        """Refresh liveness and watch each zone for a tamper or a fault.
 
-        Zone entities themselves come from the bridge's own MQTT discovery,
-        so there is no value in duplicating them here.
+        Active and secure are left alone: an activation reaches us through the
+        area topic, and normal movement while disarmed is not worth a word. A
+        tamper or a fault, though, such as a permanent tamper zone being cut,
+        may only ever show here, so those are raised with the zone named.
         """
         self._touch()
+        data = self._decode(msg.payload)
+        if data is not None:
+            self._evaluate_zone(data)
         self._notify()
+
+    def _evaluate_zone(self, data: dict[str, Any]) -> None:
+        name = str(data.get("name") or data.get("number") or "")
+        if not name:
+            return
+        condition = _zone_condition(data.get("status"))
+        _LOGGER.debug("Zone %s status %r -> %s", name, data.get("status"), condition)
+        previous = self.zone_problems.get(name)
+        if condition in ("tamper", "fault"):
+            if previous != condition:
+                self.zone_problems[name] = condition
+                self.hass.async_create_task(self._zone_problem(name, condition))
+        elif previous is not None:
+            del self.zone_problems[name]
+
+    async def _zone_problem(self, name: str, condition: str) -> None:
+        if condition == "tamper":
+            critical = self.escalate_tampers
+            await self._raise(
+                SEVERITY_CRITICAL if critical else SEVERITY_FAULT,
+                f"ZONE TAMPER at {self.entry.title}"
+                if critical
+                else f"Zone tamper: {name}",
+                f"{name} has been tampered with.",
+                sms_worthy=True,
+            )
+            return
+        await self._raise(
+            SEVERITY_FAULT,
+            f"Zone fault: {name}",
+            f"{name} is reporting a fault, such as a short or a mask.",
+        )
+
+    @property
+    def zone_problem(self) -> bool:
+        """True while any zone is in a tamper or fault condition."""
+        return bool(self.zone_problems)
 
     @callback
     def _handle_power(self, msg: mqtt.ReceiveMessage) -> None:

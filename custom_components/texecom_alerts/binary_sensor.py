@@ -27,6 +27,7 @@ async def async_setup_entry(
         TexecomBridge(coordinator, entry),
         TexecomDataHealthy(coordinator, entry),
         TexecomPanelReachable(coordinator, entry),
+        TexecomZoneProblem(coordinator, entry),
     ]
     if coordinator.gateway_host:
         entities.append(TexecomSiteReachable(coordinator, entry))
@@ -130,3 +131,28 @@ class TexecomPanelReachable(TexecomEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         """Return whether the panel is in contact."""
         return self.coordinator.panel_reachable
+
+
+class TexecomZoneProblem(TexecomEntity, BinarySensorEntity):
+    """On while any zone is in a tamper or fault condition.
+
+    Covers zones, such as a permanent tamper zone, whose trouble shows only on
+    the zone feed rather than as a panel log event or an area activation.
+    """
+
+    _attr_name = "Zone problem"
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    def __init__(self, coordinator: Any, entry: Any) -> None:
+        """Initialise."""
+        super().__init__(coordinator, entry, "zone_problem")
+
+    @property
+    def is_on(self) -> bool:
+        """Return whether any zone is tampered or faulted."""
+        return self.coordinator.zone_problem
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the zones currently in trouble and their condition."""
+        return {"zones": dict(self.coordinator.zone_problems)}
