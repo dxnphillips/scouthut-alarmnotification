@@ -311,13 +311,14 @@ class TexecomCoordinator:
         else:
             self._maybe_area_activity(previous, state)
 
-        # Disarming is the human "I have got this" signal, so it stops any
-        # running escalation. Fires regardless of the activity notification
-        # setting, since stopping the ladder is not merely a notification.
+        # Disarming is the human "I have got this" signal, so it stops the
+        # running escalation, but only once no monitored area is still in alarm.
+        # Otherwise disarming one area would silence an activation in another.
         if (
             previous is not None
             and previous.status != "disarmed"
             and state.status == "disarmed"
+            and not any(a.status == STATUS_TRIGGERED for a in self.areas.values())
         ):
             for listener in self._disarm_listeners:
                 listener(state.name)

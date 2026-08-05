@@ -3,6 +3,17 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.2.3
+
+- Disarming one area no longer silences an activation in another. The
+  escalation only stops once no monitored area is still triggered, so a disarm
+  elsewhere leaves a live alarm running.
+- Fault and activity notifications no longer overwrite each other. Each event
+  now carries its own tag, so a new one sits alongside the last rather than
+  replacing it, which had looked like the system wiping earlier notifications,
+  including ones for other areas. Critical alerts still share one tag so the
+  ladder updates in place and clears cleanly on acknowledgement.
+
 ## 1.2.2
 
 - Panel reachability is now derived from whether data is flowing, not a TCP

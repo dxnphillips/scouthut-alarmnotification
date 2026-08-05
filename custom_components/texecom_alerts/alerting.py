@@ -337,12 +337,12 @@ class AlertingEngine:
     async def _send_push(self, alert: Alert) -> None:
         critical = alert.severity == SEVERITY_CRITICAL
         activity = alert.severity == SEVERITY_ACTIVITY
+        # Critical shares one tag so the ladder updates in place and clears
+        # cleanly. Faults and activity get a tag per event, so a new one sits
+        # alongside the last rather than replacing it, which looked like the
+        # system wiping earlier notifications, including ones for other areas.
         tag = alert.tag or (
-            TAG_CRITICAL
-            if critical
-            else "texecom_info"
-            if activity
-            else "texecom_fault"
+            TAG_CRITICAL if critical else f"texecom_{slugify(alert.headline)[:48]}"
         )
         # A separate Android channel per class so a keyholder can mute activity
         # on their own phone without touching the alarm and fault channels.
