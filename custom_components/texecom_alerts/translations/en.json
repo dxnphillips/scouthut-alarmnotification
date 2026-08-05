@@ -32,6 +32,7 @@
           "escalate_tampers": "Escalate tamper alarms as emergencies (voice calls)",
           "notify_activity": "Send activity notifications such as arming and access",
           "phone_ack": "Let keyholders acknowledge by phone (Twilio, needs a public HTTPS URL Twilio trusts)",
+          "ack_endpoint": "Acknowledgement relay URL (optional, a Twilio Function that forwards to Home Assistant, for a self signed certificate)",
           "critical_sound": "Emergency sound (iOS, filename of a sound imported into the Companion app, or default)",
           "tts_siren_services": "Android phones for a maximum volume spoken siren (only used when automatic is off)"
         }
@@ -58,6 +59,7 @@
           "escalate_tampers": "Escalate tamper alarms as emergencies (voice calls)",
           "notify_activity": "Send activity notifications such as arming and access",
           "phone_ack": "Let keyholders acknowledge by phone (Twilio, needs a public HTTPS URL Twilio trusts)",
+          "ack_endpoint": "Acknowledgement relay URL (optional, a Twilio Function that forwards to Home Assistant, for a self signed certificate)",
           "critical_sound": "Emergency sound (iOS, filename of a sound imported into the Companion app, or default)",
           "tts_siren_services": "Android phones for a maximum volume spoken siren (only used when automatic is off)",
           "stale_minutes": "Treat data as stale after (minutes)",

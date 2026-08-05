@@ -29,6 +29,7 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import (
+    CONF_ACK_ENDPOINT,
     CONF_AREAS,
     CONF_AUTO_PHONES,
     CONF_BATTERY_LOW_VOLTS,
@@ -330,6 +331,10 @@ def _notify_schema(
                 CONF_PHONE_ACK,
                 default=current.get(CONF_PHONE_ACK, DEFAULT_PHONE_ACK),
             ): BooleanSelector(),
+            vol.Optional(
+                CONF_ACK_ENDPOINT,
+                default=current.get(CONF_ACK_ENDPOINT, ""),
+            ): str,
             vol.Optional(
                 CONF_CRITICAL_SOUND,
                 default=current.get(CONF_CRITICAL_SOUND, DEFAULT_CRITICAL_SOUND),

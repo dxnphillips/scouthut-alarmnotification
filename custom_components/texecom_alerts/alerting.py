@@ -21,6 +21,7 @@ from homeassistant.util import slugify
 from .const import (
     ACTION_ACK,
     ACTION_ATTEND,
+    CONF_ACK_ENDPOINT,
     CONF_AUTO_PHONES,
     CONF_CRITICAL_SOUND,
     CONF_LADDER_ROUNDS,
@@ -468,6 +469,11 @@ class AlertingEngine:
         """
         if not self._opt(CONF_PHONE_ACK):
             return None
+        # A relay endpoint wins, so Twilio can reach a Home Assistant behind a
+        # self signed certificate by talking to something it does trust.
+        endpoint = self._opt(CONF_ACK_ENDPOINT)
+        if endpoint:
+            return str(endpoint)
         webhook_id = self.entry.data.get(CONF_WEBHOOK_ID)
         if not webhook_id:
             return None
@@ -475,8 +481,9 @@ class AlertingEngine:
             return webhook.async_generate_url(self.hass, webhook_id)
         except NoURLAvailableError:
             _LOGGER.warning(
-                "Phone acknowledgement is on but no external URL is set, so "
-                "the voice call cannot reach the acknowledgement webhook"
+                "Phone acknowledgement is on but no external URL is set and no "
+                "relay endpoint is configured, so the voice call cannot reach "
+                "the acknowledgement webhook"
             )
             return None
 

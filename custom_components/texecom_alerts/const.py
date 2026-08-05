@@ -48,6 +48,11 @@ CONF_TTS_SIREN_SERVICES: Final = "tts_siren_services"
 # Inbound acknowledgement by phone, for keyholders without Home Assistant.
 CONF_PHONE_ACK: Final = "phone_ack"
 CONF_WEBHOOK_ID: Final = "webhook_id"
+# A trusted relay, such as a Twilio Function, that Twilio talks to and that
+# forwards to the Home Assistant webhook. It lets a Home Assistant with a self
+# signed certificate be reached, since the relay can tolerate that certificate
+# where Twilio will not. When set, the voice call is pointed here.
+CONF_ACK_ENDPOINT: Final = "ack_endpoint"
 
 CONF_STALE_MINUTES: Final = "stale_minutes"
 CONF_BATTERY_LOW_VOLTS: Final = "battery_low_volts"

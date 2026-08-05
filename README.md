@@ -221,11 +221,63 @@ Wiring, using the Twilio notify services you already point at:
   the address from the log, so replies reach the integration.
 
 **Twilio needs a certificate it trusts.** It refuses a self signed
-certificate and will silently drop the callback, so phone acknowledgement
-needs Home Assistant reachable on a publicly trusted HTTPS URL. A real
-certificate through the DuckDNS add on, Nabu Casa Cloud, or a reverse proxy
-that terminates a valid certificate all work. A self signed certificate on a
-public address does not.
+certificate and will silently drop the callback, so Twilio must talk to
+something it trusts. On a Home Assistant Container install, where the DuckDNS
+add on is not available, the tidy options are a Cloudflare Tunnel or a reverse
+proxy such as Caddy that terminates a real certificate, or Nabu Casa Cloud.
+
+### A relay, if Home Assistant keeps its self signed certificate
+
+If Home Assistant is reachable on a public address but only with a self signed
+certificate, put a small trusted relay in front of it and set the
+**Acknowledgement relay URL** option to the relay. Twilio talks to the relay,
+which forwards to the Home Assistant webhook and tolerates the self signed
+certificate that Twilio would reject. Nothing on Home Assistant needs to change.
+
+A Twilio Function makes a good relay, since Twilio already trusts it. Create a
+Function with these environment variables, `HA_HOST` set to the public address,
+`HA_PORT` to the port, usually `8123`, and `HA_WEBHOOK_ID` to the id from the
+Home Assistant log:
+
+```javascript
+exports.handler = function (context, event, callback) {
+  const https = require("https");
+  const body = new URLSearchParams(event).toString();
+  const req = https.request(
+    {
+      hostname: context.HA_HOST,
+      port: context.HA_PORT || 8123,
+      path: "/api/webhook/" + context.HA_WEBHOOK_ID,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Length": Buffer.byteLength(body),
+      },
+      rejectUnauthorized: false, // tolerate the self signed certificate
+    },
+    (res) => {
+      let data = "";
+      res.on("data", (c) => (data += c));
+      res.on("end", () => {
+        const response = new Twilio.Response();
+        response.appendHeader("Content-Type", "text/xml");
+        response.setBody(data);
+        callback(null, response);
+      });
+    }
+  );
+  req.on("error", (e) => callback(e));
+  req.write(body);
+  req.end();
+};
+```
+
+Put the Function URL in the **Acknowledgement relay URL** option so the voice
+call uses it, and set the Twilio number's Messaging webhook to the same URL for
+SMS replies. The relay forwards Twilio's request to Home Assistant unchanged and
+returns the reply, so the press a key and reply to the SMS flows both work. The
+relay needs to reach the Home Assistant port, so allow that port inbound from
+Twilio in the Azure network security group.
 
 ## Building your own automations
 
