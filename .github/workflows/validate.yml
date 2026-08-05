@@ -23,6 +23,12 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+          # These checks only gate inclusion in the default HACS store, not a
+          # custom repository install, which is how this is distributed. brands
+          # needs a home-assistant/brands submission, and topics and description
+          # are GitHub repository metadata. Set those on the repository and drop
+          # them here if you ever submit to the default store.
+          ignore: brands topics description
 
   ruff:
     name: Ruff
