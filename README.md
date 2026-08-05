@@ -140,6 +140,13 @@ apps, but they override silent and Do Not Disturb in the same spirit. For a
 distinctive siren rather than the default tone, add a sound to the Companion app
 on each phone and it can be used as the critical sound.
 
+**In the car.** Emergency alerts also reach the car screen. On CarPlay a
+critical alert shows on the built in display on its own. On Android Auto the
+alert carries `car_ui`, so it appears there too. Faults and activity are kept
+off the car screen, and silent panic and duress never appear there. The
+escalation voice call also comes through the car as an ordinary phone call,
+which is the surest way to reach somebody driving.
+
 Faults and activity are deliberately not built this way, so only a real
 emergency is loud. Press **Test alerts** and let it run to the voice call to
 prove the whole chain on every phone.

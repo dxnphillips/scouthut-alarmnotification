@@ -302,13 +302,15 @@ class AlertingEngine:
 
         if critical and not alert.silent:
             # Android: the alarm_stream channel plays through the ringer switch
-            # and Do Not Disturb, which a normal channel never does. The alarm
-            # volume needs to be up. iOS: a critical alert, which needs Critical
+            # and Do Not Disturb, which a normal channel never does, and car_ui
+            # surfaces it on Android Auto. The alarm volume needs to be up. iOS:
+            # a critical alert, which also shows on CarPlay, and needs Critical
             # Alerts allowed for the app or it quietly downgrades to a soft push.
             data.update(
                 {
                     "channel": "alarm_stream",
                     "importance": "high",
+                    "car_ui": True,
                     "persistent": True,
                     "sticky": True,
                     "push": {
