@@ -125,12 +125,20 @@ An emergency push is built to override a silent phone, but each platform needs
 one thing set that is outside Home Assistant, and without it the alert arrives
 as a quiet buzz.
 
-- **iOS.** The push is sent as a critical alert. That only sounds if you grant
-  the Companion app **Critical Alerts** in iOS Settings, under the app. Test
-  with the phone muted and in Do Not Disturb.
-- **Android.** The push is sent on the alarm audio stream at full volume, which
-  overrides the ringer and Do Not Disturb without any per app permission. If it
-  is still quiet, check the phone's alarm volume, not the ringer.
+- **iOS.** The push is sent as a critical alert, which bypasses the mute switch
+  and Do Not Disturb. That only takes effect once you grant the Companion app
+  **Critical Alerts** in iOS Settings, under the app. Test with the phone muted
+  and in Do Not Disturb.
+- **Android.** The push is sent on the alarm audio stream, which sounds through
+  the ringer switch and Do Not Disturb the way an alarm clock does, with no per
+  app permission. It plays at the **alarm** volume, so make sure that is up. If
+  it is still quiet, check the alarm volume, not the ringer.
+
+These are the strongest alerts an app is allowed to send. They are not the
+government emergency alerts, which travel over cell broadcast and are closed to
+apps, but they override silent and Do Not Disturb in the same spirit. For a
+distinctive siren rather than the default tone, add a sound to the Companion app
+on each phone and it can be used as the critical sound.
 
 Faults and activity are deliberately not built this way, so only a real
 emergency is loud. Press **Test alerts** and let it run to the voice call to

@@ -301,13 +301,13 @@ class AlertingEngine:
         }
 
         if critical and not alert.silent:
-            # Android: play on the alarm stream at max volume so it overrides
-            # the ringer and Do Not Disturb, which a normal channel never does.
-            # iOS: a critical alert, which needs Critical Alerts allowed for the
-            # app in iOS settings or it quietly downgrades to a normal push.
+            # Android: the alarm_stream channel plays through the ringer switch
+            # and Do Not Disturb, which a normal channel never does. The alarm
+            # volume needs to be up. iOS: a critical alert, which needs Critical
+            # Alerts allowed for the app or it quietly downgrades to a soft push.
             data.update(
                 {
-                    "channel": "alarm_stream_max",
+                    "channel": "alarm_stream",
                     "importance": "high",
                     "persistent": True,
                     "sticky": True,
