@@ -35,6 +35,7 @@ CONF_RECIPIENTS: Final = "recipients"
 
 CONF_ESCALATE_TAMPERS: Final = "escalate_tampers"
 CONF_NOTIFY_ACTIVITY: Final = "notify_activity"
+CONF_CRITICAL_SOUND: Final = "critical_sound"
 
 # Inbound acknowledgement by phone, for keyholders without Home Assistant.
 CONF_PHONE_ACK: Final = "phone_ack"
@@ -61,6 +62,13 @@ DEFAULT_MAINTENANCE_HOURS: Final = 4
 DEFAULT_ESCALATE_TAMPERS: Final = False
 DEFAULT_NOTIFY_ACTIVITY: Final = False
 DEFAULT_PHONE_ACK: Final = False
+DEFAULT_CRITICAL_SOUND: Final = "default"
+
+# Notification tags for the loud alerts, cleared from every phone when the
+# ladder is acknowledged, stopped by a disarm, or reset.
+TAG_CRITICAL: Final = "texecom_critical"
+TAG_CRITICAL_SECOND: Final = "texecom_critical_second"
+TAG_ACK: Final = "texecom_ack"
 
 DISCOVERY_SECONDS: Final = 6
 PROBE_TIMEOUT: Final = 5

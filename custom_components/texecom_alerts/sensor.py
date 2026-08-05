@@ -166,13 +166,13 @@ class TexecomLastLogSensor(TexecomEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        """Return the event type."""
+        """Return a readable label for the most recent event."""
         event = self.coordinator.last_log
-        return event.event_type if event else None
+        return event.label if event else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return the full event detail."""
+        """Return the full event detail, raw event type included."""
         event = self.coordinator.last_log
         return event.as_event_data() if event else {}
 

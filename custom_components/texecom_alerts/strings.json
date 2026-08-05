@@ -30,7 +30,8 @@
           "recipients": "Recipient numbers for SMS and voice in E.164 format",
           "escalate_tampers": "Escalate tamper alarms as emergencies (voice calls)",
           "notify_activity": "Send activity notifications such as arming and access",
-          "phone_ack": "Let keyholders acknowledge by phone (Twilio, needs a public HTTPS URL Twilio trusts)"
+          "phone_ack": "Let keyholders acknowledge by phone (Twilio, needs a public HTTPS URL Twilio trusts)",
+          "critical_sound": "Emergency sound (iOS, filename of a sound imported into the Companion app, or default)"
         }
       }
     },
@@ -54,6 +55,7 @@
           "escalate_tampers": "Escalate tamper alarms as emergencies (voice calls)",
           "notify_activity": "Send activity notifications such as arming and access",
           "phone_ack": "Let keyholders acknowledge by phone (Twilio, needs a public HTTPS URL Twilio trusts)",
+          "critical_sound": "Emergency sound (iOS, filename of a sound imported into the Companion app, or default)",
           "stale_minutes": "Treat data as stale after (minutes)",
           "battery_low_volts": "Standby battery low threshold (V)",
           "ladder_rounds": "Escalation rounds",

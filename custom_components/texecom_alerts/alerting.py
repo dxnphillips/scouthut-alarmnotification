@@ -20,6 +20,7 @@ from homeassistant.helpers.network import NoURLAvailableError
 from .const import (
     ACTION_ACK,
     ACTION_ATTEND,
+    CONF_CRITICAL_SOUND,
     CONF_LADDER_ROUNDS,
     CONF_PHONE_ACK,
     CONF_PUSH_SERVICE,
@@ -29,6 +30,7 @@ from .const import (
     CONF_SMS_SERVICE,
     CONF_VOICE_SERVICE,
     CONF_WEBHOOK_ID,
+    DEFAULT_CRITICAL_SOUND,
     DEFAULT_LADDER_ROUNDS,
     DEFAULT_ROUND_SECONDS,
     DOMAIN,
@@ -39,6 +41,9 @@ from .const import (
     SEVERITY_ACTIVITY,
     SEVERITY_CRITICAL,
     SIGNAL_UPDATE,
+    TAG_ACK,
+    TAG_CRITICAL,
+    TAG_CRITICAL_SECOND,
 )
 from .models import Alert
 
@@ -142,6 +147,19 @@ class AlertingEngine:
         self.state = ESCALATION_ACKNOWLEDGED
         self._ack.set()
         self._notify_entities()
+        # Actively remove the loud, sticky alarm push from every phone. iOS
+        # will not let a tag replace a critical notification, so clearing it is
+        # the only way to stop it lingering after the alarm is dealt with.
+        self.hass.async_create_task(self._clear_critical_push())
+
+    async def _clear_critical_push(self) -> None:
+        """Clear the loud alarm notifications from every push device."""
+        for service in self._push_services():
+            for tag in (TAG_CRITICAL, TAG_CRITICAL_SECOND):
+                await self._call(
+                    service,
+                    {"message": "clear_notification", "data": {"tag": tag}},
+                )
 
     def acknowledge(self, by: str = "a keyholder", attending: bool = False) -> None:
         """Stop the ladder and tell everyone else who responded."""
@@ -156,7 +174,7 @@ class AlertingEngine:
                     severity=SEVERITY_ACTIVITY,
                     headline="Alert acknowledged",
                     detail=f"{by} {verb}.",
-                    tag="texecom_critical",
+                    tag=TAG_ACK,
                 )
             )
         )
@@ -176,7 +194,7 @@ class AlertingEngine:
                         f"{area_name} was disarmed at the panel, "
                         "so alerting has stopped."
                     ),
-                    tag="texecom_critical",
+                    tag=TAG_ACK,
                 )
             )
         )
@@ -212,7 +230,7 @@ class AlertingEngine:
                 headline="FURTHER ACTIVATION",
                 detail=alert.detail,
                 silent=alert.silent,
-                tag="texecom_critical_second",
+                tag=TAG_CRITICAL_SECOND,
             )
             await self._send_push(supplementary)
             return
@@ -278,7 +296,7 @@ class AlertingEngine:
         critical = alert.severity == SEVERITY_CRITICAL
         activity = alert.severity == SEVERITY_ACTIVITY
         tag = alert.tag or (
-            "texecom_critical"
+            TAG_CRITICAL
             if critical
             else "texecom_info"
             if activity
@@ -315,7 +333,14 @@ class AlertingEngine:
                     "sticky": True,
                     "push": {
                         "interruption-level": "critical",
-                        "sound": {"name": "default", "critical": 1, "volume": 1.0},
+                        "sound": {
+                            "name": self._opt(
+                                CONF_CRITICAL_SOUND, DEFAULT_CRITICAL_SOUND
+                            )
+                            or DEFAULT_CRITICAL_SOUND,
+                            "critical": 1,
+                            "volume": 1.0,
+                        },
                     },
                 }
             )
@@ -429,3 +454,4 @@ class AlertingEngine:
         self.current = None
         self.acknowledged_by = None
         self._notify_entities()
+        self.hass.async_create_task(self._clear_critical_push())

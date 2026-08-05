@@ -31,6 +31,7 @@ from homeassistant.helpers.selector import (
 from .const import (
     CONF_AREAS,
     CONF_BATTERY_LOW_VOLTS,
+    CONF_CRITICAL_SOUND,
     CONF_ESCALATE_TAMPERS,
     CONF_GATEWAY_HOST,
     CONF_GATEWAY_PORT,
@@ -51,6 +52,7 @@ from .const import (
     CONF_VOICE_SERVICE,
     CONF_WEBHOOK_ID,
     DEFAULT_BATTERY_LOW_VOLTS,
+    DEFAULT_CRITICAL_SOUND,
     DEFAULT_ESCALATE_TAMPERS,
     DEFAULT_GATEWAY_PORT,
     DEFAULT_LADDER_ROUNDS,
@@ -321,5 +323,9 @@ def _notify_schema(
                 CONF_PHONE_ACK,
                 default=current.get(CONF_PHONE_ACK, DEFAULT_PHONE_ACK),
             ): BooleanSelector(),
+            vol.Optional(
+                CONF_CRITICAL_SOUND,
+                default=current.get(CONF_CRITICAL_SOUND, DEFAULT_CRITICAL_SOUND),
+            ): str,
         }
     )

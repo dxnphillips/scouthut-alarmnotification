@@ -136,9 +136,23 @@ as a quiet buzz.
 
 These are the strongest alerts an app is allowed to send. They are not the
 government emergency alerts, which travel over cell broadcast and are closed to
-apps, but they override silent and Do Not Disturb in the same spirit. For a
-distinctive siren rather than the default tone, add a sound to the Companion app
-on each phone and it can be used as the critical sound.
+apps, but they override silent and Do Not Disturb in the same spirit.
+
+**A custom siren.** For something more obnoxious than the default tone, set the
+**Emergency sound** option:
+
+- **iOS.** Import a sound into the Companion app, under Settings, Companion app,
+  Notifications, Sounds. It must be a 32 bit float 48000 Hz wav. Put its
+  filename, extension included, in the Emergency sound option. Restart the phone
+  once so it registers.
+- **Android.** The sound belongs to the alarm stream channel. Change it under
+  Settings, Companion app, Notification channels, so the option does not apply
+  there.
+
+**Acknowledging silences it everywhere.** Acknowledging, or disarming the panel,
+clears the loud alarm notification from every phone, not just the one that
+acted. This matters on iOS, where a critical notification cannot be replaced and
+would otherwise sit there until cleared.
 
 **In the car.** Emergency alerts also reach the car screen. On CarPlay a
 critical alert shows on the built in display on its own. On Android Auto the
