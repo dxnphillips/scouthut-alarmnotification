@@ -10,10 +10,12 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import UnitOfElectricCurrent, UnitOfElectricPotential
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import TexecomConfigEntry
+from .const import SIGNAL_UPDATE
 from .entity import TexecomEntity
 
 POWER_KEYS: dict[str, tuple[str, str, SensorDeviceClass]] = {
@@ -55,12 +57,29 @@ async def async_setup_entry(
         TexecomLastLogSensor(coordinator, entry),
         TexecomEscalationSensor(coordinator, entry, data.alerting),
     ]
-    entities.extend(
-        TexecomAreaSensor(coordinator, entry, area_id)
-        for area_id in sorted(coordinator.areas)
-    )
     entities.extend(TexecomPowerSensor(coordinator, entry, key) for key in POWER_KEYS)
     async_add_entities(entities)
+
+    # Areas arrive asynchronously over MQTT, so add a sensor per area as each is
+    # discovered rather than only for those present at setup. Otherwise an area
+    # whose retained message lands a moment after setup never gets an entity,
+    # and any remembered from a previous run sits there unavailable.
+    added: set[str] = set()
+
+    @callback
+    def _add_areas() -> None:
+        new = [area_id for area_id in coordinator.areas if area_id not in added]
+        if not new:
+            return
+        added.update(new)
+        async_add_entities(
+            TexecomAreaSensor(coordinator, entry, area_id) for area_id in sorted(new)
+        )
+
+    _add_areas()
+    entry.async_on_unload(
+        async_dispatcher_connect(hass, SIGNAL_UPDATE.format(entry.entry_id), _add_areas)
+    )
 
 
 class TexecomAreaSensor(TexecomEntity, SensorEntity):

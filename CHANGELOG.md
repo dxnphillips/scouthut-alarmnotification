@@ -3,6 +3,14 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.3.2
+
+- Area sensors no longer sit unavailable. They are now added as each area is
+  discovered over MQTT, rather than only for the areas present at the instant
+  the platform set up. An area whose retained message landed a moment later, or
+  one remembered from a previous run, was left showing unavailable even though
+  the combined system state read it fine.
+
 ## 1.3.1
 
 - Split activity notifications in two. Arm and disarm now has its own option,
