@@ -39,6 +39,9 @@ CONF_VOICE_SERVICE: Final = "voice_service"
 CONF_RECIPIENTS: Final = "recipients"
 
 CONF_ESCALATE_TAMPERS: Final = "escalate_tampers"
+# Arm and disarm notices, kept separate from the rest of activity so the useful
+# ones can stay on while the door access and remote command chatter stays off.
+CONF_NOTIFY_ARM_DISARM: Final = "notify_arm_disarm"
 CONF_NOTIFY_ACTIVITY: Final = "notify_activity"
 CONF_CRITICAL_SOUND: Final = "critical_sound"
 # Android only notify services that also get a spoken siren at maximum alarm
@@ -73,6 +76,7 @@ DEFAULT_ROUND_SECONDS: Final = 90
 DEFAULT_PROBE_SECONDS: Final = 60
 DEFAULT_MAINTENANCE_HOURS: Final = 4
 DEFAULT_ESCALATE_TAMPERS: Final = False
+DEFAULT_NOTIFY_ARM_DISARM: Final = True
 DEFAULT_NOTIFY_ACTIVITY: Final = False
 DEFAULT_PHONE_ACK: Final = False
 DEFAULT_CRITICAL_SOUND: Final = "default"

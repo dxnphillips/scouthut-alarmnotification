@@ -3,6 +3,13 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.3.1
+
+- Split activity notifications in two. Arm and disarm now has its own option,
+  on by default, while the noisier door access, user code and remote command
+  notifications are a separate option, off by default. So the useful arm and
+  disarm notices can stay on without the rest of the chatter.
+
 ## 1.3.0
 
 - Zone monitoring. Each zone is now watched for a tamper or a fault, so a

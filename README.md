@@ -100,8 +100,11 @@ Then set notifications, all from the dropdowns with no YAML:
 - **Escalate tamper alarms.** Off by default. Turn it on to run the full voice
   ladder when the bell, box, keypad or comms path is attacked, rather than a
   quiet fault notification
-- **Activity notifications.** Off by default. Turn it on to be told when a
-  monitored area arms or disarms, and on door access and user changes
+- **Arm and disarm notifications.** On by default. A tidy notice when a
+  monitored area is armed or disarmed
+- **Other activity notifications.** Off by default. The noisier stuff, door
+  access, user codes and remote commands, kept separate so it stays quiet
+  unless you want it
 
 Everything except the areas can be changed later, live, from the options.
 

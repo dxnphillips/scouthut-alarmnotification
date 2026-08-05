@@ -24,6 +24,7 @@ from .const import (
     CONF_GATEWAY_HOST,
     CONF_GATEWAY_PORT,
     CONF_NOTIFY_ACTIVITY,
+    CONF_NOTIFY_ARM_DISARM,
     CONF_PREFIX,
     CONF_PROBE_SECONDS,
     CONF_STALE_MINUTES,
@@ -31,6 +32,7 @@ from .const import (
     DEFAULT_ESCALATE_TAMPERS,
     DEFAULT_GATEWAY_PORT,
     DEFAULT_NOTIFY_ACTIVITY,
+    DEFAULT_NOTIFY_ARM_DISARM,
     DEFAULT_PREFIX,
     DEFAULT_PROBE_SECONDS,
     DEFAULT_STALE_MINUTES,
@@ -104,6 +106,9 @@ class TexecomCoordinator:
         )
         self.escalate_tampers: bool = bool(
             opts.get(CONF_ESCALATE_TAMPERS, DEFAULT_ESCALATE_TAMPERS)
+        )
+        self.notify_arm_disarm: bool = bool(
+            opts.get(CONF_NOTIFY_ARM_DISARM, DEFAULT_NOTIFY_ARM_DISARM)
         )
         self.notify_activity: bool = bool(
             opts.get(CONF_NOTIFY_ACTIVITY, DEFAULT_NOTIFY_ACTIVITY)
@@ -397,7 +402,7 @@ class TexecomCoordinator:
         the bridge does not emit an open or close log line, and only once the
         area settles rather than while it counts through entry and exit.
         """
-        if not self.notify_activity:
+        if not self.notify_arm_disarm:
             return
         prev_status = previous.status if previous else "unknown"
         if state.status == prev_status:
@@ -457,9 +462,10 @@ class TexecomCoordinator:
         # build their own automations without forking this integration.
         self.hass.bus.async_fire(EVENT_TEXECOM, event.as_event_data())
 
-        # Critical and fault always alert. Activity alerts only when the user
-        # asked for it, and arm and disarm log lines are left to the area topic
-        # so the same arming is not announced twice.
+        # Critical and fault always alert. Other activity, door access, user
+        # codes, remote commands and the like, alerts only when the user asks
+        # for it. Arm and disarm log lines are left to the area topic under
+        # their own option, so the same arming is not announced twice.
         notify_activity_event = (
             self.notify_activity
             and severity == SEVERITY_ACTIVITY

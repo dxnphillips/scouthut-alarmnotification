@@ -40,6 +40,7 @@ from .const import (
     CONF_LADDER_ROUNDS,
     CONF_MAINTENANCE_HOURS,
     CONF_NOTIFY_ACTIVITY,
+    CONF_NOTIFY_ARM_DISARM,
     CONF_PHONE_ACK,
     CONF_PREFIX,
     CONF_PROBE_SECONDS,
@@ -60,6 +61,7 @@ from .const import (
     DEFAULT_LADDER_ROUNDS,
     DEFAULT_MAINTENANCE_HOURS,
     DEFAULT_NOTIFY_ACTIVITY,
+    DEFAULT_NOTIFY_ARM_DISARM,
     DEFAULT_PHONE_ACK,
     DEFAULT_PREFIX,
     DEFAULT_PROBE_SECONDS,
@@ -317,6 +319,10 @@ def _notify_schema(
             vol.Optional(
                 CONF_ESCALATE_TAMPERS,
                 default=current.get(CONF_ESCALATE_TAMPERS, DEFAULT_ESCALATE_TAMPERS),
+            ): BooleanSelector(),
+            vol.Optional(
+                CONF_NOTIFY_ARM_DISARM,
+                default=current.get(CONF_NOTIFY_ARM_DISARM, DEFAULT_NOTIFY_ARM_DISARM),
             ): BooleanSelector(),
             vol.Optional(
                 CONF_NOTIFY_ACTIVITY,
