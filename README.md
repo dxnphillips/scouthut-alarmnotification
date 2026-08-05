@@ -208,6 +208,9 @@ the notification clears. The acknowledgement push also names who responded.
 
 ### Acknowledging by phone, for keyholders without Home Assistant
 
+For the whole Twilio walkthrough, outbound texts and calls, the relay and the
+webhook, see [docs/twilio-setup.md](docs/twilio-setup.md).
+
 Turn on **Let keyholders acknowledge by phone** in the options. A keyholder
 can then press **1** on the voice call, or reply **ACK** to the SMS, to stop
 the escalation. Both arrive at a webhook this integration registers, one per
