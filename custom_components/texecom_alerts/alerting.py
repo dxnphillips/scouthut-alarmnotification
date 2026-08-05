@@ -446,9 +446,12 @@ class AlertingEngine:
 
     async def _send_sms(self, alert: Alert) -> None:
         recipients = self._opt(CONF_RECIPIENTS) or []
-        payload: dict[str, Any] = {
-            "message": f"{alert.headline}. {alert.detail}",
-        }
+        message = f"{alert.headline}. {alert.detail}"
+        # Only tell them how to acknowledge on a real alarm with phone ack on,
+        # since a fault SMS has no running ladder for a reply to stop.
+        if alert.severity == SEVERITY_CRITICAL and self._opt(CONF_PHONE_ACK):
+            message += " Reply ACK to acknowledge and stop the alerts."
+        payload: dict[str, Any] = {"message": message}
         if recipients:
             payload["target"] = list(recipients)
         await self._call(self._opt(CONF_SMS_SERVICE), payload)
