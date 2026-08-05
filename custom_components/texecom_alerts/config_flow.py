@@ -40,8 +40,6 @@ from .const import (
     CONF_LADDER_ROUNDS,
     CONF_MAINTENANCE_HOURS,
     CONF_NOTIFY_ACTIVITY,
-    CONF_PANEL_HOST,
-    CONF_PANEL_PORT,
     CONF_PHONE_ACK,
     CONF_PREFIX,
     CONF_PROBE_SECONDS,
@@ -62,7 +60,6 @@ from .const import (
     DEFAULT_LADDER_ROUNDS,
     DEFAULT_MAINTENANCE_HOURS,
     DEFAULT_NOTIFY_ACTIVITY,
-    DEFAULT_PANEL_PORT,
     DEFAULT_PHONE_ACK,
     DEFAULT_PREFIX,
     DEFAULT_PROBE_SECONDS,
@@ -133,8 +130,6 @@ class TexecomConfigFlow(ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(CONF_SITE_NAME, default=DEFAULT_SITE_NAME): str,
                 vol.Required(CONF_PREFIX, default=DEFAULT_PREFIX): str,
-                vol.Optional(CONF_PANEL_HOST, default=""): str,
-                vol.Optional(CONF_PANEL_PORT, default=DEFAULT_PANEL_PORT): int,
                 vol.Optional(CONF_GATEWAY_HOST, default=""): str,
                 vol.Optional(CONF_GATEWAY_PORT, default=DEFAULT_GATEWAY_PORT): int,
             }

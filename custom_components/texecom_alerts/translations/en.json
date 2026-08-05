@@ -3,12 +3,10 @@
     "step": {
       "user": {
         "title": "Texecom Alerts",
-        "description": "Point this at the texecom2mqtt bridge. The host fields are optional but strongly recommended: without them there is no way to tell a dead site apart from a dead panel.",
+        "description": "Point this at the texecom2mqtt bridge. The site gateway fields are optional but recommended, so a site that has lost power or its line can be told apart from a panel that has simply gone quiet.",
         "data": {
           "site_name": "Site name",
           "prefix": "MQTT prefix",
-          "panel_host": "Panel address",
-          "panel_port": "Panel port",
           "gateway_host": "Site gateway address",
           "gateway_port": "Site gateway port"
         }

@@ -24,8 +24,6 @@ from .const import (
     CONF_GATEWAY_HOST,
     CONF_GATEWAY_PORT,
     CONF_NOTIFY_ACTIVITY,
-    CONF_PANEL_HOST,
-    CONF_PANEL_PORT,
     CONF_PREFIX,
     CONF_PROBE_SECONDS,
     CONF_STALE_MINUTES,
@@ -33,7 +31,6 @@ from .const import (
     DEFAULT_ESCALATE_TAMPERS,
     DEFAULT_GATEWAY_PORT,
     DEFAULT_NOTIFY_ACTIVITY,
-    DEFAULT_PANEL_PORT,
     DEFAULT_PREFIX,
     DEFAULT_PROBE_SECONDS,
     DEFAULT_STALE_MINUTES,
@@ -78,8 +75,6 @@ class TexecomCoordinator:
 
         opts = {**entry.data, **entry.options}
         self.prefix: str = opts.get(CONF_PREFIX, DEFAULT_PREFIX)
-        self.panel_host: str | None = opts.get(CONF_PANEL_HOST)
-        self.panel_port: int = opts.get(CONF_PANEL_PORT, DEFAULT_PANEL_PORT)
         self.gateway_host: str | None = opts.get(CONF_GATEWAY_HOST) or None
         self.gateway_port: int = opts.get(CONF_GATEWAY_PORT, DEFAULT_GATEWAY_PORT)
         self.stale_after = timedelta(
@@ -104,8 +99,9 @@ class TexecomCoordinator:
         self.power: dict[str, float] = {}
         self.bridge_online: bool | None = None
         self.site_reachable: bool | None = None
-        self.panel_reachable: bool | None = None
         self.last_message: Any = None
+        # Previous derived panel contact, to alert only on the drop.
+        self._panel_ok_prev: bool | None = None
         self.last_log: LogEvent | None = None
         self.last_activation: AreaState | None = None
 
@@ -192,6 +188,22 @@ class TexecomCoordinator:
         if self.last_message is None:
             return False
         return (dt_util.utcnow() - self.last_message) < self.stale_after
+
+    @property
+    def panel_reachable(self) -> bool | None:
+        """Whether the panel is in live contact, derived from data freshness.
+
+        Deliberately not a TCP probe. The ComIP allows a single connection and
+        the bridge holds it, so a probe from here would always be refused. When
+        the bridge is up and data is still flowing the panel is reachable; when
+        the bridge falls silent past the staleness window, or its Last Will says
+        offline, it is not.
+        """
+        if self.last_message is None and self.bridge_online is None:
+            return None
+        if self.bridge_online is False:
+            return False
+        return self.data_healthy
 
     # ------------------------------------------------------------------
     # MQTT handlers
@@ -409,7 +421,7 @@ class TexecomCoordinator:
     # ------------------------------------------------------------------
 
     async def _async_probe(self, _now: Any) -> None:
-        """Probe the gateway and the panel."""
+        """Probe the site gateway and re-evaluate panel contact."""
         if self.gateway_host:
             reachable = await async_tcp_probe(
                 self.gateway_host, self.gateway_port, PROBE_TIMEOUT
@@ -418,23 +430,26 @@ class TexecomCoordinator:
                 await self._site_changed(reachable)
             self.site_reachable = reachable
 
-        if self.panel_host:
-            reachable = await async_tcp_probe(
-                self.panel_host, self.panel_port, PROBE_TIMEOUT
+        # Panel contact is derived from data freshness, not a probe. Alert on
+        # the drop while the bridge is still up and the site is not down, the
+        # bridge online but panel silent case that staleness exists to catch.
+        panel_ok = self.panel_reachable
+        if (
+            panel_ok is False
+            and self._panel_ok_prev is True
+            and self.bridge_online is not False
+            and self.site_reachable is not False
+        ):
+            await self._raise(
+                SEVERITY_FAULT,
+                "Panel link lost",
+                "The bridge is up but the panel has gone quiet. No data has "
+                "arrived within the staleness window, which usually means the "
+                "link between the bridge and the panel has dropped even though "
+                "the bridge is still running.",
+                sms_worthy=True,
             )
-            if (
-                reachable is not self.panel_reachable
-                and self.panel_reachable is not None
-                and not reachable
-                and self.site_reachable is not False
-            ):
-                await self._raise(
-                    SEVERITY_FAULT,
-                    "Alarm panel unreachable",
-                    "The site is up but the ComIP stopped responding. Check "
-                    "the module, the panel power and the firewall policy.",
-                )
-            self.panel_reachable = reachable
+        self._panel_ok_prev = panel_ok
 
         self._notify()
 

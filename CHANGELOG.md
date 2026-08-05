@@ -3,6 +3,16 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.2.2
+
+- Panel reachability is now derived from whether data is flowing, not a TCP
+  probe. The Texecom ComIP allows a single connection and the bridge holds it,
+  so a probe from Home Assistant was always refused and the panel read as
+  unreachable even when healthy. The panel address is no longer asked for, and
+  the panel reachable sensor now means the panel is in live contact.
+- The panel link going quiet while the bridge stays up now raises a fault, the
+  bridge online but panel silent case, rather than only showing on a sensor.
+
 ## 1.2.1
 
 - The alarm SMS now tells the keyholder to reply ACK to acknowledge, so a phone

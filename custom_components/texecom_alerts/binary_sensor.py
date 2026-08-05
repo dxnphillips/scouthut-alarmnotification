@@ -26,11 +26,10 @@ async def async_setup_entry(
         TexecomAnyArmed(coordinator, entry),
         TexecomBridge(coordinator, entry),
         TexecomDataHealthy(coordinator, entry),
+        TexecomPanelReachable(coordinator, entry),
     ]
     if coordinator.gateway_host:
         entities.append(TexecomSiteReachable(coordinator, entry))
-    if coordinator.panel_host:
-        entities.append(TexecomPanelReachable(coordinator, entry))
     async_add_entities(entities)
 
 
@@ -113,7 +112,12 @@ class TexecomSiteReachable(TexecomEntity, BinarySensorEntity):
 
 
 class TexecomPanelReachable(TexecomEntity, BinarySensorEntity):
-    """TCP reachability of the ComIP or SmartCom port."""
+    """Whether the panel is in live contact, derived from data freshness.
+
+    Not a TCP probe. The ComIP allows a single connection and the bridge holds
+    it, so a probe would always be refused. On instead means data is still
+    flowing from the panel through the bridge.
+    """
 
     _attr_name = "Panel reachable"
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
@@ -124,5 +128,5 @@ class TexecomPanelReachable(TexecomEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool | None:
-        """Return whether the panel port answers."""
+        """Return whether the panel is in contact."""
         return self.coordinator.panel_reachable

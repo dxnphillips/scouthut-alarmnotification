@@ -30,18 +30,18 @@ dashboard or a service call.
 bland title and a hidden lock screen preview, because a phone lying face up
 that announces a duress entry defeats the point of a duress code.
 
-**Tells four failure states apart:**
+**Tells the failure states apart:**
 
-| Site | Panel | Data | Meaning |
-| --- | --- | --- | --- |
-| Down | Down | No | Building lost power or line |
-| Up | Down | No | ComIP or panel power fault |
-| Up | Up | No | Bridge up but panel link dead |
-| Up | Up | Yes | Healthy |
+| Site | Panel data | Meaning |
+| --- | --- | --- |
+| Down | none | Building lost power or line |
+| Up | none | Bridge up but the panel link is dead |
+| Up | flowing | Healthy |
 
-That third row is the one most setups miss. The bridge reconnects on error
-rather than exiting, so it keeps reporting itself online with nothing
-flowing.
+That middle row is the one most setups miss. The bridge reconnects on error
+rather than exiting, so it keeps reporting itself online with nothing flowing.
+Panel contact is judged from that data, not a probe, because the ComIP takes
+one connection and the bridge already has it.
 
 ## Requirements
 
@@ -71,11 +71,13 @@ nothing to look up first. Supply:
 
 - **Site name.** Used in every alert headline
 - **MQTT prefix.** Defaults to `texecom2mqtt`
-- **Panel address and port.** The ComIP or SmartCom, usually port 10001
 - **Site gateway address and port.** Your firewall or router at the site
 
-The host fields are optional but strongly recommended. Without them there is
-no way to tell a dead site apart from a dead panel.
+The gateway fields are optional but recommended. Without them a site that has
+lost power or its line cannot be told apart from a panel that has simply gone
+quiet. The panel itself is not probed, because the ComIP allows a single
+connection and the bridge holds it, so panel contact is judged from whether
+data is still flowing.
 
 Then choose which areas to monitor. Only the areas you pick count towards the
 combined system state, so an unused area the panel still publishes will not
@@ -112,7 +114,7 @@ Everything except the areas can be changed later, live, from the options.
 | `binary_sensor.*_bridge` | Bridge Last Will and Testament |
 | `binary_sensor.*_data_stale` | Bridge up but panel silent |
 | `binary_sensor.*_site_reachable` | TCP probe to the site gateway |
-| `binary_sensor.*_panel_reachable` | TCP probe to the ComIP port |
+| `binary_sensor.*_panel_reachable` | Panel in contact, from data still flowing |
 | `switch.*_maintenance_mode` | Suppresses faults, never suppresses alarms |
 | `button.*_test_alerts` | Runs the full ladder with a marked test |
 | `button.*_acknowledge` | Stops a running ladder |
