@@ -3,6 +3,28 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.1.1
+
+Emergency delivery and acknowledgement fixes from testing on real phones.
+
+- Emergency pushes are now genuinely loud on Android. They use the documented
+  alarm_stream channel, which plays through the ringer switch and Do Not
+  Disturb, rather than a value that only applies to text to speech and left
+  them as a quiet buzz.
+- Emergency alerts show on the car. On CarPlay a critical alert appears on the
+  built in display, and on Android Auto the alert carries `car_ui`. Faults,
+  activity and silent duress are kept off the car screen.
+- Acknowledging, disarming or resetting clears the loud alarm notification from
+  every phone. Without this an iOS critical alert, which cannot be replaced by
+  tag, sat on the phone after the alarm was dealt with.
+- A custom emergency sound can be set, so the critical alert uses a siren
+  imported into the Companion app on iOS rather than the default tone.
+- The last log event sensor shows a readable label. RemoteCommand reads as
+  Remote command, with acronyms such as AC Fail kept intact. The raw event type
+  stays available as an attribute.
+- HACS validation in CI ignores the topics, description and brands checks, which
+  only gate the default store and not a custom repository install.
+
 ## 1.1.0
 
 First public release.
