@@ -111,6 +111,7 @@ class TexecomCoordinator:
 
         # Callbacks registered by the alerting engine
         self._alert_listeners: list[Any] = []
+        self._disarm_listeners: list[Any] = []
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -147,6 +148,10 @@ class TexecomCoordinator:
     def add_alert_listener(self, listener: Any) -> None:
         """Register a coroutine called with each Alert worth raising."""
         self._alert_listeners.append(listener)
+
+    def add_disarm_listener(self, listener: Any) -> None:
+        """Register a callback fired when a monitored area is disarmed."""
+        self._disarm_listeners.append(listener)
 
     # ------------------------------------------------------------------
     # Derived state
@@ -293,6 +298,17 @@ class TexecomCoordinator:
             self.hass.async_create_task(self._area_triggered(state))
         else:
             self._maybe_area_activity(previous, state)
+
+        # Disarming is the human "I have got this" signal, so it stops any
+        # running escalation. Fires regardless of the activity notification
+        # setting, since stopping the ladder is not merely a notification.
+        if (
+            previous is not None
+            and previous.status != "disarmed"
+            and state.status == "disarmed"
+        ):
+            for listener in self._disarm_listeners:
+                listener(state.name)
 
         self._notify()
 

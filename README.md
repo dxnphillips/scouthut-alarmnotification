@@ -119,6 +119,23 @@ Everything except the areas can be changed later, live, from the options.
 `texecom_alerts.test_alerts`, `texecom_alerts.acknowledge`,
 `texecom_alerts.reset`.
 
+## Emergency notifications, waking somebody
+
+An emergency push is built to override a silent phone, but each platform needs
+one thing set that is outside Home Assistant, and without it the alert arrives
+as a quiet buzz.
+
+- **iOS.** The push is sent as a critical alert. That only sounds if you grant
+  the Companion app **Critical Alerts** in iOS Settings, under the app. Test
+  with the phone muted and in Do Not Disturb.
+- **Android.** The push is sent on the alarm audio stream at full volume, which
+  overrides the ringer and Do Not Disturb without any per app permission. If it
+  is still quiet, check the phone's alarm volume, not the ringer.
+
+Faults and activity are deliberately not built this way, so only a real
+emergency is loud. Press **Test alerts** and let it run to the voice call to
+prove the whole chain on every phone.
+
 ## Acknowledging alerts
 
 Acknowledgement stops the ladder for everyone and tells the other keyholders
@@ -128,6 +145,14 @@ Home Assistant there are three ways:
 - the Companion app notification buttons, Acknowledge and Attending
 - the dashboard button, `button.*_acknowledge`
 - the service, `texecom_alerts.acknowledge`
+
+**Disarming the panel also stops the ladder.** When a monitored area goes to
+disarmed while an escalation is running, the escalation stops on its own, since
+disarming is the human "I have got this" response.
+
+Every escalation start, acknowledgement, disarm stop and exhaustion is written
+to the Home Assistant logbook, naming who responded, so there is a record after
+the notification clears. The acknowledgement push also names who responded.
 
 ### Acknowledging by phone, for keyholders without Home Assistant
 

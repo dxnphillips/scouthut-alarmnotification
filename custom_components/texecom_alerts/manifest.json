@@ -1,6 +1,7 @@
 {
   "domain": "texecom_alerts",
   "name": "Texecom Alerts",
+  "after_dependencies": ["logbook"],
   "codeowners": ["@dxnphillips"],
   "config_flow": true,
   "dependencies": ["mqtt", "webhook"],

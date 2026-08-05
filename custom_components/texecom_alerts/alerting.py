@@ -11,7 +11,7 @@ import asyncio
 import logging
 from typing import Any
 
-from homeassistant.components import webhook
+from homeassistant.components import logbook, webhook
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -31,6 +31,7 @@ from .const import (
     CONF_WEBHOOK_ID,
     DEFAULT_LADDER_ROUNDS,
     DEFAULT_ROUND_SECONDS,
+    DOMAIN,
     ESCALATION_ACKNOWLEDGED,
     ESCALATION_EXHAUSTED,
     ESCALATION_IDLE,
@@ -102,6 +103,12 @@ class AlertingEngine:
             self.hass.bus.async_listen(EVENT_MOBILE_ACTION, self._handle_action)
         )
         self.coordinator.add_alert_listener(self.async_handle)
+        # Disarming the panel is a human response, so it stops the ladder.
+        self.coordinator.add_disarm_listener(self.stop_for_disarm)
+
+    def _logbook(self, message: str) -> None:
+        """Record an entry so the who and when survive after the push clears."""
+        logbook.async_log_entry(self.hass, self.entry.title, message, DOMAIN)
 
     async def async_shutdown(self) -> None:
         """Cancel any running ladder and stop listening."""
@@ -129,21 +136,46 @@ class AlertingEngine:
             attending=action == ACTION_ATTEND,
         )
 
-    def acknowledge(self, by: str = "a keyholder", attending: bool = False) -> None:
-        """Stop the ladder and tell everyone else who responded."""
-        if self.state != ESCALATION_RUNNING:
-            return
+    def _finish(self, by: str) -> None:
+        """Move the ladder out of running and record who ended it."""
         self.acknowledged_by = by
         self.state = ESCALATION_ACKNOWLEDGED
         self._ack.set()
         self._notify_entities()
+
+    def acknowledge(self, by: str = "a keyholder", attending: bool = False) -> None:
+        """Stop the ladder and tell everyone else who responded."""
+        if self.state != ESCALATION_RUNNING:
+            return
+        self._finish(by)
         verb = "is attending" if attending else "acknowledged the alert"
+        self._logbook(f"{by} {verb}")
         self.hass.async_create_task(
             self._send_push(
                 Alert(
                     severity=SEVERITY_ACTIVITY,
                     headline="Alert acknowledged",
                     detail=f"{by} {verb}.",
+                    tag="texecom_critical",
+                )
+            )
+        )
+
+    def stop_for_disarm(self, area_name: str) -> None:
+        """Stop a running ladder because the panel was disarmed."""
+        if self.state != ESCALATION_RUNNING:
+            return
+        self._finish("the panel being disarmed")
+        self._logbook(f"Escalation stopped, {area_name} disarmed at the panel")
+        self.hass.async_create_task(
+            self._send_push(
+                Alert(
+                    severity=SEVERITY_ACTIVITY,
+                    headline="Escalation stopped",
+                    detail=(
+                        f"{area_name} was disarmed at the panel, "
+                        "so alerting has stopped."
+                    ),
                     tag="texecom_critical",
                 )
             )
@@ -190,6 +222,7 @@ class AlertingEngine:
         self.state = ESCALATION_RUNNING
         self._ack = asyncio.Event()
         self._notify_entities()
+        self._logbook(f"Escalation started: {alert.headline}")
         self._task = self.hass.async_create_task(self._run_ladder(alert))
 
     async def _run_ladder(self, alert: Alert) -> None:
@@ -214,6 +247,7 @@ class AlertingEngine:
                     continue
 
             self.state = ESCALATION_EXHAUSTED
+            self._logbook("Escalation exhausted with no acknowledgement")
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -267,13 +301,18 @@ class AlertingEngine:
         }
 
         if critical and not alert.silent:
+            # Android: play on the alarm stream at max volume so it overrides
+            # the ringer and Do Not Disturb, which a normal channel never does.
+            # iOS: a critical alert, which needs Critical Alerts allowed for the
+            # app in iOS settings or it quietly downgrades to a normal push.
             data.update(
                 {
-                    "importance": "max",
+                    "channel": "alarm_stream_max",
+                    "importance": "high",
                     "persistent": True,
                     "sticky": True,
                     "push": {
-                        "interruption_level": "critical",
+                        "interruption-level": "critical",
                         "sound": {"name": "default", "critical": 1, "volume": 1.0},
                     },
                 }
@@ -281,19 +320,22 @@ class AlertingEngine:
             title = alert.headline
             message = alert.detail
         elif critical and alert.silent:
-            # Silent panic and duress. Bland title, body hidden from the lock
-            # screen, no audible tone.
+            # Silent panic and duress. Discreet on both platforms: no alarm
+            # stream, a quiet importance, a bland title and the body hidden from
+            # the lock screen, so a phone in view never announces a duress entry.
             data.update(
                 {
-                    "importance": "max",
+                    "importance": "low",
                     "visibility": "private",
-                    "push": {"interruption_level": "time-sensitive"},
+                    "push": {"interruption-level": "passive"},
                 }
             )
             title = "Site status update"
             message = alert.detail
         else:
-            data.update({"push": {"interruption_level": "time-sensitive"}})
+            # Faults break through with time sensitive. Activity stays passive.
+            level = "passive" if activity else "time-sensitive"
+            data.update({"push": {"interruption-level": level}})
             title = alert.headline
             message = alert.detail
 
