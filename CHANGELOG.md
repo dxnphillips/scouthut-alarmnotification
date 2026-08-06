@@ -3,6 +3,13 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.3.4
+
+- Notifications now read in words, matching the log sensor. A fault reads
+  Alarm fault: Supervision fault rather than the raw SupervisionFault code.
+- Notifications name the affected zone or device when the bridge provides one,
+  so a supervision fault says which sensor rather than only its area.
+
 ## 1.3.3
 
 - Area sensors no longer sit unavailable. They are now added as each area is

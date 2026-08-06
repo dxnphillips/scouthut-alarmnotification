@@ -569,18 +569,28 @@ class TexecomCoordinator:
         )
 
     async def _log_alert(self, event: LogEvent) -> None:
-        where = f" on {event.zone_name}" if event.zone_name else ""
+        # Use the readable label the sensor uses, so a fault reads Supervision
+        # fault rather than the raw SupervisionFault code.
+        label = event.label
+        # Name the zone or device when the bridge gives us one, so a
+        # supervision fault says which sensor rather than just its area.
+        if event.zone_name:
+            where = f" on {event.zone_name}"
+        elif event.parameter not in (None, ""):
+            where = f" ({event.parameter})"
+        else:
+            where = ""
         area = f" in {', '.join(event.areas)}" if event.areas else ""
         if event.severity == SEVERITY_CRITICAL:
-            headline = f"{event.description.upper()} at {self.entry.title}"
+            headline = f"{label.upper()} at {self.entry.title}"
         elif event.severity == SEVERITY_FAULT:
-            headline = f"Alarm fault: {event.description}"
+            headline = f"Alarm fault: {label}"
         else:
-            headline = f"{event.description} at {self.entry.title}"
+            headline = f"{label} at {self.entry.title}"
         await self._raise(
             event.severity,
             headline,
-            f"{event.description}{where}{area}.",
+            f"{label}{where}{area}.",
             silent=event.silent,
             sms_worthy=event.sms_worthy,
         )
