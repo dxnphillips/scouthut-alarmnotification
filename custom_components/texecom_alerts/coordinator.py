@@ -53,6 +53,12 @@ from .probes import async_tcp_probe
 
 _LOGGER = logging.getLogger(__name__)
 
+# Consecutive probe results before the site state is believed. A run of
+# failures is required to declare offline, so a single VPN blip is ignored,
+# and a couple of successes to declare it back online.
+SITE_CONFIRM_OFFLINE = 3
+SITE_CONFIRM_ONLINE = 2
+
 _HUMAN_STATUS: dict[str, str] = {
     "full_armed": "armed away",
     "part_armed_1": "part armed 1",
@@ -124,7 +130,11 @@ class TexecomCoordinator:
         self.zone_problems: dict[str, str] = {}
         self.power: dict[str, float] = {}
         self.bridge_online: bool | None = None
+        # Debounced site reachability, plus the streaks that drive it, so a
+        # single missed probe over the VPN does not shout site offline.
         self.site_reachable: bool | None = None
+        self._site_ok = 0
+        self._site_fail = 0
         self.last_message: Any = None
         # Previous derived panel contact, to alert only on the drop.
         self._panel_ok_prev: bool | None = None
@@ -496,9 +506,7 @@ class TexecomCoordinator:
             reachable = await async_tcp_probe(
                 self.gateway_host, self.gateway_port, PROBE_TIMEOUT
             )
-            if reachable is not self.site_reachable and self.site_reachable is not None:
-                await self._site_changed(reachable)
-            self.site_reachable = reachable
+            await self._update_site(reachable)
 
         # Panel contact is derived from data freshness, not a probe. Alert on
         # the drop while the bridge is still up and the site is not down, the
@@ -522,6 +530,35 @@ class TexecomCoordinator:
         self._panel_ok_prev = panel_ok
 
         self._notify()
+
+    async def _update_site(self, reachable: bool) -> None:
+        """Debounce the site probe so a flapping link is not shouted about.
+
+        A single missed probe over the VPN is common and means nothing, so the
+        site is only declared offline after several consecutive failures, and
+        online again after a couple of successes. Only a confirmed change
+        alerts, and the sensor follows the confirmed state rather than the raw
+        probe, so it stops flapping too.
+        """
+        if reachable:
+            self._site_ok += 1
+            self._site_fail = 0
+        else:
+            self._site_fail += 1
+            self._site_ok = 0
+
+        confirmed = self.site_reachable
+        if reachable and self._site_ok >= SITE_CONFIRM_ONLINE:
+            confirmed = True
+        elif not reachable and self._site_fail >= SITE_CONFIRM_OFFLINE:
+            confirmed = False
+
+        if confirmed is self.site_reachable:
+            return
+        was = self.site_reachable
+        self.site_reachable = confirmed
+        if was is not None:
+            await self._site_changed(confirmed)
 
     async def _site_changed(self, reachable: bool) -> None:
         """Site went up or down.

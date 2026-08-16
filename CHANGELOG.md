@@ -3,6 +3,14 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.3.5
+
+- The site reachability probe is debounced, so a flapping link no longer
+  shouts site offline and back online over and over. The site is declared
+  offline only after several consecutive failed probes and online again after
+  a couple of successes, and the sensor follows that steadied state. A single
+  missed probe over the VPN is now ignored.
+
 ## 1.3.4
 
 - Notifications now read in words, matching the log sensor. A fault reads
