@@ -3,6 +3,13 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.3.6
+
+- Arm and disarm notifications now pop up rather than landing silently in the
+  background. They use a banner on iOS and a heads up on Android, on their own
+  channel so a phone that had muted the activity channel still shows them, and
+  so the other activity notifications stay quietly in the shade.
+
 ## 1.3.5
 
 - The site reachability probe is debounced, so a flapping link no longer

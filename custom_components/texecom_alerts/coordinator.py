@@ -426,6 +426,7 @@ class TexecomCoordinator:
                     SEVERITY_ACTIVITY,
                     f"{state.name} {human}",
                     f"{state.name} at {self.entry.title} is now {human}.",
+                    heads_up=True,
                 )
             )
         elif state.status == "disarmed" and prev_status != "disarmed":
@@ -434,6 +435,7 @@ class TexecomCoordinator:
                     SEVERITY_ACTIVITY,
                     f"{state.name} disarmed",
                     f"{state.name} at {self.entry.title} was disarmed.",
+                    heads_up=True,
                 )
             )
 
@@ -640,6 +642,7 @@ class TexecomCoordinator:
         *,
         silent: bool = False,
         sms_worthy: bool = False,
+        heads_up: bool = False,
     ) -> None:
         from .models import Alert
 
@@ -649,6 +652,7 @@ class TexecomCoordinator:
             detail=detail,
             silent=silent,
             sms_worthy=sms_worthy,
+            heads_up=heads_up,
         )
         for listener in self._alert_listeners:
             await listener(alert)

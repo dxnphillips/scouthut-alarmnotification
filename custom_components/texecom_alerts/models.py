@@ -112,3 +112,6 @@ class Alert:
     sms_worthy: bool = False
     source: str = "panel"
     tag: str | None = None
+    # Ask for a banner rather than a quiet background notice. Used for arm and
+    # disarm, so those pop up while the rest of activity stays in the shade.
+    heads_up: bool = False

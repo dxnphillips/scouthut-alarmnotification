@@ -345,9 +345,14 @@ class AlertingEngine:
             TAG_CRITICAL if critical else f"texecom_{slugify(alert.headline)[:48]}"
         )
         # A separate Android channel per class so a keyholder can mute activity
-        # on their own phone without touching the alarm and fault channels.
+        # on their own phone without touching the alarm and fault channels. Arm
+        # and disarm gets its own channel so it can pop up while the rest of
+        # activity stays quiet, and so its importance is not stuck low from the
+        # activity channel a phone may already have.
         if critical:
             channel = "Alarm"
+        elif alert.heads_up:
+            channel = "Arm and disarm"
         elif activity:
             channel = "Alarm Activity"
         else:
@@ -401,8 +406,20 @@ class AlertingEngine:
             )
             title = "Site status update"
             message = alert.detail
+        elif alert.heads_up:
+            # Arm and disarm: a real banner and a heads up on Android, so it is
+            # seen, but no alarm stream or Do Not Disturb override.
+            data.update(
+                {
+                    "importance": "high",
+                    "push": {"interruption-level": "active"},
+                }
+            )
+            title = alert.headline
+            message = alert.detail
         else:
-            # Faults break through with time sensitive. Activity stays passive.
+            # Faults break through with time sensitive. Other activity stays
+            # passive, quietly in the shade.
             level = "passive" if activity else "time-sensitive"
             data.update({"push": {"interruption-level": level}})
             title = alert.headline
