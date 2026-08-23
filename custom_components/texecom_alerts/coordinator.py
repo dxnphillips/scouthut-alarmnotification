@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections import deque
 from datetime import timedelta
 from typing import Any
 
@@ -140,6 +141,9 @@ class TexecomCoordinator:
         self._panel_ok_prev: bool | None = None
         self.last_log: LogEvent | None = None
         self.last_activation: AreaState | None = None
+        # A short history of recent log events, for diagnostics and to see what
+        # a test activation actually produced.
+        self.recent_events: deque[dict[str, Any]] = deque(maxlen=25)
 
         # Callbacks registered by the alerting engine
         self._alert_listeners: list[Any] = []
@@ -467,6 +471,9 @@ class TexecomCoordinator:
         )
 
         self.last_log = event
+        self.recent_events.append(
+            {**event.as_event_data(), "received": str(event.received)}
+        )
         self._touch()
         self._notify()
 

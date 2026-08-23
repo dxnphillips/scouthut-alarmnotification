@@ -38,6 +38,16 @@ async def async_get_config_entry_diagnostics(
             "last_message": str(coordinator.last_message),
             "areas": {k: asdict(v) for k, v in coordinator.areas.items()},
             "power": coordinator.power,
+            "zone_problems": coordinator.zone_problems,
+            "last_activation": (
+                asdict(coordinator.last_activation)
+                if coordinator.last_activation
+                else None
+            ),
+            "last_log": (
+                coordinator.last_log.as_event_data() if coordinator.last_log else None
+            ),
+            "recent_events": list(coordinator.recent_events),
         },
         "alerting": {
             "state": alerting.state,

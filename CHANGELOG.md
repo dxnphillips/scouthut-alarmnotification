@@ -3,6 +3,12 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.3.7
+
+- Diagnostics now include a short history of recent log events, the last log
+  event, the last activation and any zone problems, so a test activation can
+  actually be seen in a diagnostics download rather than only in the moment.
+
 ## 1.3.6
 
 - Arm and disarm notifications now pop up rather than landing silently in the
