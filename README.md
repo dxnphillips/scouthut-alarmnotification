@@ -26,6 +26,14 @@ access are logged quietly, or turned into notifications if you want them.
 zone that only shows on the zone feed still raises an alert rather than passing
 unseen. A zone tamper follows the same escalate tampers choice as any other.
 
+**Treats a fire link as fire.** Name the zones wired to a fire alarm and any of
+them going active raises a distinct loud fire alert, armed or disarmed, kept
+apart from an intruder activation. A fire link is often programmed on the panel
+as an Auxiliary zone, which raises only a silent alarm there and emits no Fire
+log event, so watching the zone go active is the one dependable signal. It is
+caught three ways, the zone going active, the area triggering off a fire zone,
+and a Fire panel event, and deduplicated so one fire rings one ladder.
+
 **Escalates until somebody answers.** Push, then SMS, then repeating voice
 calls, stopping the moment anybody acknowledges from the notification, the
 dashboard or a service call.
@@ -100,6 +108,11 @@ Then set notifications, all from the dropdowns with no YAML:
 - **Escalate tamper alarms.** Off by default. Turn it on to run the full voice
   ladder when the bell, box, keypad or comms path is attacked, rather than a
   quiet fault notification
+- **Fire zones.** Empty by default. Name or number the zones wired to a fire
+  alarm link, one entry each. Any of them going active raises a distinct loud
+  fire alert that runs the full ladder, whether the panel is armed or disarmed.
+  A fire link programmed as an Auxiliary zone raises only a silent alarm at the
+  panel, so naming it here is what turns it into a loud fire alert on the phones
 - **Arm and disarm notifications.** On by default. A tidy notice when a
   monitored area is armed or disarmed
 - **Other activity notifications.** Off by default. The noisier stuff, door

@@ -3,6 +3,19 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.4.0
+
+- Fire zones. A new option names the zones wired to a fire alarm link, by name
+  or number, and any of them going active raises a distinct loud fire alert,
+  armed or disarmed, separate from an intruder activation. It is caught three
+  ways, the zone feed going active, the area triggering off a fire zone, and a
+  Fire panel log event, and deduplicated so one fire raises one ladder rather
+  than three. This matters for a fire link programmed as an Auxiliary zone,
+  which raises only a silent alarm at the panel and emits no Fire log event, so
+  watching the zone go active is the only dependable signal. The fire alert runs
+  the full escalation ladder and clears from every phone on acknowledgement like
+  any other emergency.
+
 ## 1.3.7
 
 - Diagnostics now include a short history of recent log events, the last log

@@ -35,6 +35,7 @@ from .const import (
     CONF_BATTERY_LOW_VOLTS,
     CONF_CRITICAL_SOUND,
     CONF_ESCALATE_TAMPERS,
+    CONF_FIRE_ZONES,
     CONF_GATEWAY_HOST,
     CONF_GATEWAY_PORT,
     CONF_LADDER_ROUNDS,
@@ -320,6 +321,10 @@ def _notify_schema(
                 CONF_ESCALATE_TAMPERS,
                 default=current.get(CONF_ESCALATE_TAMPERS, DEFAULT_ESCALATE_TAMPERS),
             ): BooleanSelector(),
+            vol.Optional(
+                CONF_FIRE_ZONES,
+                default=current.get(CONF_FIRE_ZONES, []),
+            ): TextSelector(TextSelectorConfig(multiple=True)),
             vol.Optional(
                 CONF_NOTIFY_ARM_DISARM,
                 default=current.get(CONF_NOTIFY_ARM_DISARM, DEFAULT_NOTIFY_ARM_DISARM),

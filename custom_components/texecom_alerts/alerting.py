@@ -49,6 +49,7 @@ from .const import (
     TAG_ACK,
     TAG_CRITICAL,
     TAG_CRITICAL_SECOND,
+    TAG_FIRE,
     TAG_SIREN,
 )
 from .models import Alert
@@ -195,7 +196,7 @@ class AlertingEngine:
 
     async def _clear_critical_push(self) -> None:
         """Clear the loud alarm notifications from every push device."""
-        tags = (TAG_CRITICAL, TAG_CRITICAL_SECOND, TAG_SIREN)
+        tags = (TAG_CRITICAL, TAG_CRITICAL_SECOND, TAG_SIREN, TAG_FIRE)
         for service in set(self._push_services()) | set(self._tts_siren_services()):
             for tag in tags:
                 await self._call(

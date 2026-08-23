@@ -38,6 +38,13 @@ CONF_SMS_SERVICE: Final = "sms_service"
 CONF_VOICE_SERVICE: Final = "voice_service"
 CONF_RECIPIENTS: Final = "recipients"
 
+# Zones wired to a fire alarm link. Named or numbered here, these are treated
+# as fire whenever they go active, armed or disarmed, rather than as ordinary
+# movement. A Texecom fire link is often programmed as an Auxiliary zone, which
+# raises only a silent alarm at the panel and no Fire log event, so watching the
+# zone go active is the reliable signal. Fire always runs the loud ladder.
+CONF_FIRE_ZONES: Final = "fire_zones"
+
 CONF_ESCALATE_TAMPERS: Final = "escalate_tampers"
 # Arm and disarm notices, kept separate from the rest of activity so the useful
 # ones can stay on while the door access and remote command chatter stays off.
@@ -88,6 +95,9 @@ TAG_CRITICAL: Final = "texecom_critical"
 TAG_CRITICAL_SECOND: Final = "texecom_critical_second"
 TAG_SIREN: Final = "texecom_siren"
 TAG_ACK: Final = "texecom_ack"
+# Fire runs its own loud ladder under its own tag, so a fire push and an
+# intruder push sit side by side rather than one replacing the other.
+TAG_FIRE: Final = "texecom_fire"
 
 DISCOVERY_SECONDS: Final = 6
 PROBE_TIMEOUT: Final = 5
@@ -154,6 +164,18 @@ CRITICAL_EVENTS: Final = frozenset(
         "TwentyFourHourAudible",
         "TwentyFourHourSilent",
         "TwentyFourHourGas",
+    }
+)
+
+# Panel log events that mean fire, when a fire zone is programmed as a proper
+# Fire type rather than an Auxiliary one. A subset of the critical events, but
+# routed to the dedicated fire alert so the wording and tag are right. The
+# Auxiliary case emits none of these, and is caught by watching the fire zone
+# go active instead, so this is a belt and braces path, not the only one.
+FIRE_EVENTS: Final = frozenset(
+    {
+        "Fire",
+        "KeypadFire",
     }
 )
 

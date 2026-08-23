@@ -22,6 +22,7 @@ from .const import (
     ARMED_STATES,
     CONF_AREAS,
     CONF_ESCALATE_TAMPERS,
+    CONF_FIRE_ZONES,
     CONF_GATEWAY_HOST,
     CONF_GATEWAY_PORT,
     CONF_NOTIFY_ACTIVITY,
@@ -39,6 +40,7 @@ from .const import (
     DEFAULT_STALE_MINUTES,
     EVENT_TEXECOM,
     FAULT_EVENTS,
+    FIRE_EVENTS,
     PROBE_TIMEOUT,
     SEVERITY_ACTIVITY,
     SEVERITY_CRITICAL,
@@ -47,6 +49,7 @@ from .const import (
     SILENT_EVENTS,
     SMS_FAULTS,
     STATUS_TRIGGERED,
+    TAG_FIRE,
     TAMPER_EVENTS,
 )
 from .models import AreaState, LogEvent
@@ -59,6 +62,11 @@ _LOGGER = logging.getLogger(__name__)
 # and a couple of successes to declare it back online.
 SITE_CONFIRM_OFFLINE = 3
 SITE_CONFIRM_ONLINE = 2
+
+# One physical fire can reach us three ways at once: the zone feed going active,
+# an area triggering, and a Fire log event. Collapse them within this window so
+# a single fire raises one loud ladder, not three.
+FIRE_DEDUP_SECONDS = 60
 
 _HUMAN_STATUS: dict[str, str] = {
     "full_armed": "armed away",
@@ -124,6 +132,14 @@ class TexecomCoordinator:
         # Without this, an unused area the panel still publishes would keep the
         # system reading part armed when every area you monitor is armed.
         self.monitored: set[str] = {str(a) for a in (opts.get(CONF_AREAS) or [])}
+        # Zones wired to a fire link, matched by name or number, lower cased so
+        # entering Fire, fire or 3 all work. A fire zone going active is treated
+        # as a fire whatever the arm state.
+        self.fire_zones: set[str] = {
+            str(z).strip().lower()
+            for z in (opts.get(CONF_FIRE_ZONES) or [])
+            if str(z).strip()
+        }
 
         # State
         self.areas: dict[str, AreaState] = {}
@@ -141,6 +157,9 @@ class TexecomCoordinator:
         self._panel_ok_prev: bool | None = None
         self.last_log: LogEvent | None = None
         self.last_activation: AreaState | None = None
+        # When the last fire alert went out, to collapse the several signals a
+        # single fire produces into one loud ladder.
+        self._last_fire: Any = None
         # A short history of recent log events, for diagnostics and to see what
         # a test activation actually produced.
         self.recent_events: deque[dict[str, Any]] = deque(maxlen=25)
@@ -280,12 +299,34 @@ class TexecomCoordinator:
             self._evaluate_zone(data)
         self._notify()
 
+    def _is_fire_zone(self, name: Any, number: Any) -> bool:
+        """Return whether a zone, by name or number, is a configured fire link."""
+        if not self.fire_zones:
+            return False
+        candidates = {
+            str(value).strip().lower()
+            for value in (name, number)
+            if value not in (None, "")
+        }
+        return bool(candidates & self.fire_zones)
+
     def _evaluate_zone(self, data: dict[str, Any]) -> None:
         name = str(data.get("name") or data.get("number") or "")
         if not name:
             return
+        number = data.get("number")
         condition = _zone_condition(data.get("status"))
         _LOGGER.debug("Zone %s status %r -> %s", name, data.get("status"), condition)
+
+        # A fire zone going active is a fire, armed or disarmed. This overrides
+        # the usual rule that an active zone is left to the area topic, because
+        # a fire link programmed as an Auxiliary zone raises only a silent panel
+        # alarm and may never set the area to triggered, so the zone going active
+        # is the one dependable signal.
+        if condition == "active" and self._is_fire_zone(name, number):
+            self.hass.async_create_task(self._raise_fire(name))
+            return
+
         previous = self.zone_problems.get(name)
         if condition in ("tamper", "fault"):
             if previous != condition:
@@ -481,6 +522,15 @@ class TexecomCoordinator:
         # build their own automations without forking this integration.
         self.hass.bus.async_fire(EVENT_TEXECOM, event.as_event_data())
 
+        # A Fire log event, on a panel that does classify the zone as fire type,
+        # routes to the dedicated fire alert rather than a generic critical
+        # activation. Deduplicated so it does not double with the zone feed.
+        if event_type in FIRE_EVENTS:
+            self.hass.async_create_task(
+                self._raise_fire(event.zone_name or "the panel")
+            )
+            return
+
         # Critical and fault always alert. Other activity, door access, user
         # codes, remote commands and the like, alerts only when the user asks
         # for it. Arm and disarm log lines are left to the area topic under
@@ -602,6 +652,12 @@ class TexecomCoordinator:
     # ------------------------------------------------------------------
 
     async def _area_triggered(self, area: AreaState) -> None:
+        # If the zone that triggered the area is a fire link, this is a fire, not
+        # a break in. Route it to the fire alert, deduplicated against the zone
+        # feed so one fire does not alert twice.
+        if self._is_fire_zone(area.last_active_zone, area.last_active_zone_number):
+            await self._raise_fire(area.last_active_zone or area.name)
+            return
         zone = area.last_active_zone or "not reported"
         number = (
             f" (zone {area.last_active_zone_number})"
@@ -612,6 +668,30 @@ class TexecomCoordinator:
             SEVERITY_CRITICAL,
             f"ALARM ACTIVATION at {self.entry.title}",
             f"{area.name} triggered by {zone}{number}.",
+        )
+
+    async def _raise_fire(self, source: Any) -> None:
+        """Raise the loud fire alert, collapsing the several signals into one.
+
+        A fire can reach us through the zone feed, an area trigger and a Fire log
+        event at once. The first within the window wins and the rest are dropped,
+        so one fire runs one ladder. Fire is always loud, never silent, and never
+        suppressed by maintenance mode, which the critical severity guarantees.
+        """
+        now = dt_util.utcnow()
+        if self._last_fire is not None and (now - self._last_fire) < timedelta(
+            seconds=FIRE_DEDUP_SECONDS
+        ):
+            return
+        self._last_fire = now
+        where = str(source).strip() if source not in (None, "") else "a fire zone"
+        await self._raise(
+            SEVERITY_CRITICAL,
+            f"FIRE at {self.entry.title}",
+            f"Fire alarm activation from {where}. Treat as a fire and evacuate "
+            "until confirmed otherwise.",
+            sms_worthy=True,
+            tag=TAG_FIRE,
         )
 
     async def _log_alert(self, event: LogEvent) -> None:
@@ -650,6 +730,7 @@ class TexecomCoordinator:
         silent: bool = False,
         sms_worthy: bool = False,
         heads_up: bool = False,
+        tag: str | None = None,
     ) -> None:
         from .models import Alert
 
@@ -660,6 +741,7 @@ class TexecomCoordinator:
             silent=silent,
             sms_worthy=sms_worthy,
             heads_up=heads_up,
+            tag=tag,
         )
         for listener in self._alert_listeners:
             await listener(alert)

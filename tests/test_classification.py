@@ -10,6 +10,7 @@ from custom_components.texecom_alerts.const import (
     ACTIVITY_EVENTS,
     CRITICAL_EVENTS,
     FAULT_EVENTS,
+    FIRE_EVENTS,
     SILENT_EVENTS,
     SMS_FAULTS,
     TAMPER_EVENTS,
@@ -37,6 +38,16 @@ def test_tampers_are_faults() -> None:
     """Tampers are faults so escalation is opt in, not a reclassification."""
     assert TAMPER_EVENTS <= FAULT_EVENTS
     assert not TAMPER_EVENTS & CRITICAL_EVENTS
+
+
+def test_fire_events_are_critical() -> None:
+    """Fire log events route through the fire alert, which must be critical.
+
+    They are held apart in FIRE_EVENTS so the wording and tag are right, but a
+    fire that did not escalate would be worse than useless.
+    """
+    assert FIRE_EVENTS <= CRITICAL_EVENTS
+    assert not FIRE_EVENTS & SILENT_EVENTS
 
 
 def test_duress_is_silent() -> None:
