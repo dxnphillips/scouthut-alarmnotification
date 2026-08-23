@@ -20,6 +20,10 @@ All notable changes to Texecom Alerts are recorded here. This project follows
   as the emergency sound, and falls back to the emergency sound when left blank.
   Android tells them apart through the spoken siren, which says the fire
   headline aloud, so no channel tone change is needed there.
+- The Android spoken siren now says only the headline, kept short on purpose.
+  Android cannot stop a spoken notification part way through, so a long sentence
+  kept talking for seconds after a keyholder had already acknowledged. The full
+  detail still shows on the notification and is spoken on the voice calls.
 
 ## 1.3.7
 

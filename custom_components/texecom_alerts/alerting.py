@@ -454,6 +454,12 @@ class AlertingEngine:
         alarm_stream_max forces the alarm volume to the top, plays, then puts it
         back. This is a text to speech notification, so it only goes to the
         services named as Android, never to an iPhone that would show the word.
+
+        Only the headline is spoken, kept short on purpose. Android has no way to
+        stop a spoken notification part way through, so a long sentence would
+        keep talking for seconds after a keyholder has acknowledged. The full
+        detail still shows on the notification card and is spoken on the voice
+        calls.
         """
         services = self._tts_siren_services()
         if not services:
@@ -464,7 +470,7 @@ class AlertingEngine:
                 "ttl": 0,
                 "priority": "high",
                 "media_stream": "alarm_stream_max",
-                "tts_text": f"{alert.headline}. {alert.detail}",
+                "tts_text": alert.headline,
                 "tag": TAG_SIREN,
             },
         }
