@@ -24,6 +24,7 @@ from .const import (
     CONF_ACK_ENDPOINT,
     CONF_AUTO_PHONES,
     CONF_CRITICAL_SOUND,
+    CONF_FIRE_SOUND,
     CONF_LADDER_ROUNDS,
     CONF_PHONE_ACK,
     CONF_PUSH_SERVICE,
@@ -367,6 +368,17 @@ class AlertingEngine:
         }
 
         if critical and not alert.silent:
+            # iOS sound: a fire gets its own tone when one is set, so fire is
+            # told from an intruder by ear, otherwise the critical sound. On
+            # Android the alarm_stream tone is the phone's alarm ringtone and
+            # cannot be swapped without losing the Do Not Disturb bypass, so the
+            # two are told apart there by the spoken siren saying the headline.
+            sound_name = (
+                self._opt(CONF_CRITICAL_SOUND, DEFAULT_CRITICAL_SOUND)
+                or DEFAULT_CRITICAL_SOUND
+            )
+            if alert.tag == TAG_FIRE and self._opt(CONF_FIRE_SOUND):
+                sound_name = self._opt(CONF_FIRE_SOUND)
             # Android: the alarm_stream channel plays through the ringer switch
             # and Do Not Disturb, which a normal channel never does, and car_ui
             # surfaces it on Android Auto. The alarm volume needs to be up. iOS:
@@ -382,10 +394,7 @@ class AlertingEngine:
                     "push": {
                         "interruption-level": "critical",
                         "sound": {
-                            "name": self._opt(
-                                CONF_CRITICAL_SOUND, DEFAULT_CRITICAL_SOUND
-                            )
-                            or DEFAULT_CRITICAL_SOUND,
+                            "name": sound_name,
                             "critical": 1,
                             "volume": 1.0,
                         },

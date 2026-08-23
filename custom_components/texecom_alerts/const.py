@@ -51,6 +51,10 @@ CONF_ESCALATE_TAMPERS: Final = "escalate_tampers"
 CONF_NOTIFY_ARM_DISARM: Final = "notify_arm_disarm"
 CONF_NOTIFY_ACTIVITY: Final = "notify_activity"
 CONF_CRITICAL_SOUND: Final = "critical_sound"
+# A separate iOS sound for a fire alert, so fire is told from an intruder by
+# ear. Falls back to the critical sound when left blank. Android tells them
+# apart through the spoken siren, which says the fire headline aloud.
+CONF_FIRE_SOUND: Final = "fire_sound"
 # Android only notify services that also get a spoken siren at maximum alarm
 # volume. Kept separate because the payload would show as the word TTS on iOS.
 CONF_TTS_SIREN_SERVICES: Final = "tts_siren_services"

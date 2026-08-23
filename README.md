@@ -113,6 +113,10 @@ Then set notifications, all from the dropdowns with no YAML:
   fire alert that runs the full ladder, whether the panel is armed or disarmed.
   A fire link programmed as an Auxiliary zone raises only a silent alarm at the
   panel, so naming it here is what turns it into a loud fire alert on the phones
+- **Fire sound.** Optional, iPhones only. A separate sound imported into the
+  Companion app so a fire is told from an intruder by ear. Left blank it uses the
+  emergency sound. Android tells the two apart through the spoken siren, which
+  says the fire headline aloud, so it needs nothing set here
 - **Arm and disarm notifications.** On by default. A tidy notice when a
   monitored area is armed or disarmed
 - **Other activity notifications.** Off by default. The noisier stuff, door

@@ -35,6 +35,7 @@ from .const import (
     CONF_BATTERY_LOW_VOLTS,
     CONF_CRITICAL_SOUND,
     CONF_ESCALATE_TAMPERS,
+    CONF_FIRE_SOUND,
     CONF_FIRE_ZONES,
     CONF_GATEWAY_HOST,
     CONF_GATEWAY_PORT,
@@ -344,6 +345,10 @@ def _notify_schema(
             vol.Optional(
                 CONF_CRITICAL_SOUND,
                 default=current.get(CONF_CRITICAL_SOUND, DEFAULT_CRITICAL_SOUND),
+            ): str,
+            vol.Optional(
+                CONF_FIRE_SOUND,
+                default=current.get(CONF_FIRE_SOUND, ""),
             ): str,
             vol.Optional(
                 CONF_TTS_SIREN_SERVICES,
