@@ -3,6 +3,18 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.4.1
+
+- A separate fire sound can be set, so a fire is told from an intruder alarm by
+  ear on iPhones. It uses a sound imported into the Companion app, the same way
+  as the emergency sound, and falls back to the emergency sound when left blank.
+  Android tells them apart through the spoken siren, which says the fire
+  headline aloud, so no channel tone change is needed there.
+- The Android spoken siren now says only the headline, kept short on purpose.
+  Android cannot stop a spoken notification part way through, so a long sentence
+  kept talking for seconds after a keyholder had already acknowledged. The full
+  detail still shows on the notification and is spoken on the voice calls.
+
 ## 1.4.0
 
 - Fire zones. A new option names the zones wired to a fire alarm link, by name
@@ -15,15 +27,6 @@ All notable changes to Texecom Alerts are recorded here. This project follows
   watching the zone go active is the only dependable signal. The fire alert runs
   the full escalation ladder and clears from every phone on acknowledgement like
   any other emergency.
-- A separate fire sound can be set, so a fire is told from an intruder alarm by
-  ear on iPhones. It uses a sound imported into the Companion app, the same way
-  as the emergency sound, and falls back to the emergency sound when left blank.
-  Android tells them apart through the spoken siren, which says the fire
-  headline aloud, so no channel tone change is needed there.
-- The Android spoken siren now says only the headline, kept short on purpose.
-  Android cannot stop a spoken notification part way through, so a long sentence
-  kept talking for seconds after a keyholder had already acknowledged. The full
-  detail still shows on the notification and is spoken on the voice calls.
 
 ## 1.3.7
 
