@@ -2,7 +2,8 @@
   "domain": "texecom_alerts",
   "name": "Texecom Alerts",
   "after_dependencies": [
-    "logbook"
+    "logbook",
+    "lovelace"
   ],
   "codeowners": [
     "@dxnphillips"
