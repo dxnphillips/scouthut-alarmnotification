@@ -389,6 +389,11 @@ class AlertingEngine:
                     "channel": "alarm_stream",
                     "importance": "high",
                     "car_ui": True,
+                    # A recognisable icon so fire is told from an intruder alarm
+                    # at a glance, including on the Android Auto car screen.
+                    "notification_icon": (
+                        "mdi:fire" if alert.tag == TAG_FIRE else "mdi:alarm-light"
+                    ),
                     "persistent": True,
                     "sticky": True,
                     "push": {

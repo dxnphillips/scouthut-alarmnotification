@@ -5,6 +5,11 @@ All notable changes to Texecom Alerts are recorded here. This project follows
 
 ## 1.4.2
 
+- Emergency and fire alerts now carry a recognisable icon, a flame for fire and
+  an alarm light for an intruder activation, on the phone and on the Android Auto
+  car screen, so the two are told apart at a glance while driving. The alerts
+  already carried car_ui for Android Auto; the app must stay enabled in the
+  Android Auto launcher for it to show.
 - Detect a fire link wired as an Auxiliary zone. On a real Premier Elite the
   fire zone fires as an Auxiliary alarm, not a Fire event, and it carries the
   zone number in the log parameter field rather than as a named zone, so the
