@@ -145,12 +145,23 @@ Everything except the areas can be changed later, live, from the options.
 | `switch.*_maintenance_mode` | Suppresses faults, never suppresses alarms |
 | `button.*_test_alerts` | Runs the full ladder with a marked test |
 | `button.*_acknowledge` | Stops a running ladder |
+| `button.*_create_dashboard` | Adds an Alarm view to the Scout Hut sidebar dashboard |
 | `sensor.*_panel_voltage` and three more | Power supply health |
+
+## Dashboard
+
+The Create dashboard button, or the `texecom_alerts.create_dashboard` service,
+adds an Alarm view to a Scout Hut sidebar dashboard: the combined state, each
+area, the escalation state, the health sensors and the control buttons, with the
+real entity ids filled in for you. It writes to the same `scout-hut` dashboard
+the companion heating integration uses, and merges rather than replaces, so the
+two sit as separate tabs under one dashboard and neither wipes the other. It is
+opt in, so nothing appears in the sidebar until you press the button.
 
 ## Services
 
 `texecom_alerts.test_alerts`, `texecom_alerts.acknowledge`,
-`texecom_alerts.reset`.
+`texecom_alerts.reset`, `texecom_alerts.create_dashboard`.
 
 ## Emergency notifications, waking somebody
 

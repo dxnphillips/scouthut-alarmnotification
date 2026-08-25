@@ -3,6 +3,16 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.5.0
+
+- Add an Alarm view to the shared Scout Hut sidebar dashboard, the same one the
+  heating integration builds, so heating, fans and the alarm live under one tab.
+  A Create dashboard button and a create_dashboard service add it, with the real
+  entity ids resolved automatically. The write merges rather than replaces, so
+  it never disturbs the heating views. For the heating Create dashboards button
+  to leave the Alarm view alone in turn, the heating integration needs the same
+  merge, a matching small change there.
+
 ## 1.4.2
 
 - Emergency and fire alerts now carry a recognisable icon, a flame for fire and

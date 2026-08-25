@@ -106,6 +106,16 @@
           "description": "Limit to one site. Omit to reset every site."
         }
       }
+    },
+    "create_dashboard": {
+      "name": "Create dashboard",
+      "description": "Add an Alarm view to the shared Scout Hut sidebar dashboard, merging alongside the heating views rather than replacing them.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Limit to one site. Omit to add a view for every site."
+        }
+      }
     }
   }
 }

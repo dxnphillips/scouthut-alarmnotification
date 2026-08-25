@@ -21,6 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 SERVICE_TEST = "test_alerts"
 SERVICE_ACK = "acknowledge"
 SERVICE_RESET = "reset"
+SERVICE_CREATE_DASHBOARD = "create_dashboard"
 
 SERVICE_SCHEMA = vol.Schema({vol.Optional("entry_id"): cv.string})
 
@@ -101,6 +102,15 @@ def _register_services(hass: HomeAssistant) -> None:
         for entry in _entries(call):
             entry.runtime_data.alerting.reset()
 
+    async def _create_dashboard(call: ServiceCall) -> None:
+        from . import dashboards
+
+        for entry in _entries(call):
+            await dashboards.async_create_dashboards(hass, entry)
+
     hass.services.async_register(DOMAIN, SERVICE_TEST, _test, schema=SERVICE_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_ACK, _ack, schema=SERVICE_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_RESET, _reset, schema=SERVICE_SCHEMA)
+    hass.services.async_register(
+        DOMAIN, SERVICE_CREATE_DASHBOARD, _create_dashboard, schema=SERVICE_SCHEMA
+    )
