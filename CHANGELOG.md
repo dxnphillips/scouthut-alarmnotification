@@ -3,6 +3,15 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.5.1
+
+- Fire conditions now also emit texecom_alerts_event (event_type Fire) on the
+  Home Assistant bus, matching the README, so external automations can react. A
+  fire was reaching the notification ladder but not the bus, because both fire
+  pathways returned before the log handler's own bus emit, and the real
+  Auxiliary alarm reached the bus only under its raw event type. The heating
+  integration's fire safety hold, which listens for a Fire event, can now fire.
+
 ## 1.5.0
 
 - Add an Alarm view to the shared Scout Hut sidebar dashboard, the same one the

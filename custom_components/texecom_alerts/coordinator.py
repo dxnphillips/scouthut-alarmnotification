@@ -555,7 +555,7 @@ class TexecomCoordinator:
         # feed or an area trigger.
         fire_source = self._log_fire_source(event_type, event, data)
         if fire_source is not None:
-            self.hass.async_create_task(self._raise_fire(fire_source))
+            self.hass.async_create_task(self._raise_fire(fire_source, event.areas))
             return
 
         # Critical and fault always alert. Other activity, door access, user
@@ -683,7 +683,7 @@ class TexecomCoordinator:
         # a break in. Route it to the fire alert, deduplicated against the zone
         # feed so one fire does not alert twice.
         if self._is_fire_zone(area.last_active_zone, area.last_active_zone_number):
-            await self._raise_fire(area.last_active_zone or area.name)
+            await self._raise_fire(area.last_active_zone or area.name, [area.name])
             return
         zone = area.last_active_zone or "not reported"
         number = (
@@ -697,7 +697,7 @@ class TexecomCoordinator:
             f"{area.name} triggered by {zone}{number}.",
         )
 
-    async def _raise_fire(self, source: Any) -> None:
+    async def _raise_fire(self, source: Any, areas: list[str] | None = None) -> None:
         """Raise the loud fire alert, collapsing the several signals into one.
 
         A fire can reach us through the zone feed, an area trigger and a Fire log
@@ -712,6 +712,24 @@ class TexecomCoordinator:
             return
         self._last_fire = now
         where = str(source).strip() if source not in (None, "") else "a fire zone"
+
+        # Put fire on the event bus as a Fire event, so an external automation,
+        # such as the heating integration's fire safety hold, can react. Both
+        # fire pathways funnel through here and each returns before the log
+        # handler's own bus emit, so without this a fire would reach the
+        # notification ladder but never the bus. The event_type must stay exactly
+        # Fire, a member of FIRE_EVENTS and the string consumers filter on.
+        self.hass.bus.async_fire(
+            EVENT_TEXECOM,
+            {
+                "event_type": "Fire",
+                "severity": SEVERITY_CRITICAL,
+                "zone_name": where,
+                "description": f"Fire at {self.entry.title}",
+                "areas": areas or [],
+            },
+        )
+
         await self._raise(
             SEVERITY_CRITICAL,
             f"FIRE at {self.entry.title}",
