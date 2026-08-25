@@ -3,6 +3,16 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.4.2
+
+- Detect a fire link wired as an Auxiliary zone. On a real Premier Elite the
+  fire zone fires as an Auxiliary alarm, not a Fire event, and it carries the
+  zone number in the log parameter field rather than as a named zone, so the
+  first fire test raised no fire alert. An Auxiliary alarm is now treated as
+  fire whenever its zone is a configured fire zone, matched by that parameter as
+  well as by name and id. A Fire type event is still caught as before, and an
+  auxiliary alarm on any other zone is left alone.
+
 ## 1.4.1
 
 - A separate fire sound can be set, so a fire is told from an intruder alarm by

@@ -20,6 +20,7 @@ from .const import (
     ACTIVITY_EVENTS,
     ARM_ACTIVITY_EVENTS,
     ARMED_STATES,
+    AUX_ALARM_EVENTS,
     CONF_AREAS,
     CONF_ESCALATE_TAMPERS,
     CONF_FIRE_ZONES,
@@ -63,9 +64,9 @@ _LOGGER = logging.getLogger(__name__)
 SITE_CONFIRM_OFFLINE = 3
 SITE_CONFIRM_ONLINE = 2
 
-# One physical fire can reach us three ways at once: the zone feed going active,
-# an area triggering, and a Fire log event. Collapse them within this window so
-# a single fire raises one loud ladder, not three.
+# One physical fire can reach us several ways at once: an Auxiliary or Fire log
+# event, the zone feed going active, and an area triggering off the fire zone.
+# Collapse them within this window so a single fire raises one loud ladder.
 FIRE_DEDUP_SECONDS = 60
 
 _HUMAN_STATUS: dict[str, str] = {
@@ -299,16 +300,42 @@ class TexecomCoordinator:
             self._evaluate_zone(data)
         self._notify()
 
-    def _is_fire_zone(self, name: Any, number: Any) -> bool:
-        """Return whether a zone, by name or number, is a configured fire link."""
+    def _is_fire_zone(self, *values: Any) -> bool:
+        """Return whether any given zone name or number is a configured fire link.
+
+        Accepts several candidate values, a zone name, a zone id, a log parameter
+        holding the zone number, so a fire zone is matched however the bridge
+        happens to identify it in a given message.
+        """
         if not self.fire_zones:
             return False
         candidates = {
-            str(value).strip().lower()
-            for value in (name, number)
-            if value not in (None, "")
+            str(value).strip().lower() for value in values if value not in (None, "")
         }
         return bool(candidates & self.fire_zones)
+
+    def _log_fire_source(
+        self, event_type: str, event: LogEvent, data: dict[str, Any]
+    ) -> str | None:
+        """Return a source label if a log event is a fire, else None.
+
+        Two shapes are seen. A proper Fire type is always fire. An Auxiliary
+        alarm is fire only when its zone is a configured fire zone, since a fire
+        link is often wired as an Auxiliary zone. On a real Premier Elite the
+        Auxiliary alarm carries the zone number in the parameter field rather
+        than as a named zone, so match on that too.
+        """
+        if event_type in FIRE_EVENTS:
+            return event.zone_name or "the panel"
+        if event_type in AUX_ALARM_EVENTS:
+            parameter = data.get("parameter")
+            if self._is_fire_zone(event.zone_name, event.zone_id, parameter):
+                if event.zone_name:
+                    return str(event.zone_name)
+                if parameter not in (None, ""):
+                    return f"zone {parameter}"
+                return "a fire zone"
+        return None
 
     def _evaluate_zone(self, data: dict[str, Any]) -> None:
         name = str(data.get("name") or data.get("number") or "")
@@ -522,13 +549,13 @@ class TexecomCoordinator:
         # build their own automations without forking this integration.
         self.hass.bus.async_fire(EVENT_TEXECOM, event.as_event_data())
 
-        # A Fire log event, on a panel that does classify the zone as fire type,
-        # routes to the dedicated fire alert rather than a generic critical
-        # activation. Deduplicated so it does not double with the zone feed.
-        if event_type in FIRE_EVENTS:
-            self.hass.async_create_task(
-                self._raise_fire(event.zone_name or "the panel")
-            )
+        # A fire, whether reported as a Fire event or as an Auxiliary alarm on a
+        # configured fire zone, routes to the dedicated fire alert rather than a
+        # generic activation. Deduplicated so it does not double with the zone
+        # feed or an area trigger.
+        fire_source = self._log_fire_source(event_type, event, data)
+        if fire_source is not None:
+            self.hass.async_create_task(self._raise_fire(fire_source))
             return
 
         # Critical and fault always alert. Other activity, door access, user

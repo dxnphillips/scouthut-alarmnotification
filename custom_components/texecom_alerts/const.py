@@ -171,15 +171,26 @@ CRITICAL_EVENTS: Final = frozenset(
     }
 )
 
-# Panel log events that mean fire, when a fire zone is programmed as a proper
-# Fire type rather than an Auxiliary one. A subset of the critical events, but
-# routed to the dedicated fire alert so the wording and tag are right. The
-# Auxiliary case emits none of these, and is caught by watching the fire zone
-# go active instead, so this is a belt and braces path, not the only one.
+# Panel log events that always mean fire, when a fire zone is programmed as a
+# proper Fire type. A subset of the critical events, but routed to the dedicated
+# fire alert so the wording and tag are right.
 FIRE_EVENTS: Final = frozenset(
     {
         "Fire",
         "KeypadFire",
+    }
+)
+
+# A fire link is commonly wired as an Auxiliary zone instead, which the panel
+# reports as an Auxiliary alarm rather than a Fire event, carrying the zone
+# number in the log parameter field. These are treated as fire only when that
+# zone is a configured fire zone, so an unrelated auxiliary alarm is left alone.
+# Observed on a real Premier Elite: type Auxiliary, description "Auxiliary
+# Alarm", parameter set to the zone number.
+AUX_ALARM_EVENTS: Final = frozenset(
+    {
+        "Auxiliary",
+        "AuxiliaryAlarm",
     }
 )
 

@@ -27,12 +27,14 @@ zone that only shows on the zone feed still raises an alert rather than passing
 unseen. A zone tamper follows the same escalate tampers choice as any other.
 
 **Treats a fire link as fire.** Name the zones wired to a fire alarm and any of
-them going active raises a distinct loud fire alert, armed or disarmed, kept
-apart from an intruder activation. A fire link is often programmed on the panel
-as an Auxiliary zone, which raises only a silent alarm there and emits no Fire
-log event, so watching the zone go active is the one dependable signal. It is
-caught three ways, the zone going active, the area triggering off a fire zone,
-and a Fire panel event, and deduplicated so one fire rings one ladder.
+them raises a distinct loud fire alert, armed or disarmed, kept apart from an
+intruder activation. A fire link is often programmed on the panel as an
+Auxiliary zone, which raises only a silent alarm there and reports as an
+Auxiliary alarm rather than a Fire event, naming the zone only by its number in
+the log parameter. That case is handled: an Auxiliary alarm on a configured fire
+zone is treated as fire. It is caught several ways, the Auxiliary alarm, the
+zone going active, the area triggering off a fire zone, and a proper Fire event,
+and deduplicated so one fire rings one ladder.
 
 **Escalates until somebody answers.** Push, then SMS, then repeating voice
 calls, stopping the moment anybody acknowledges from the notification, the
