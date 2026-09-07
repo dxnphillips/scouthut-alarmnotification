@@ -35,6 +35,8 @@ async def async_get_config_entry_diagnostics(
             "site_reachable": coordinator.site_reachable,
             "panel_reachable": coordinator.panel_reachable,
             "data_healthy": coordinator.data_healthy,
+            "fire_active": coordinator.fire_active,
+            "fire_test_mode": coordinator.fire_test_mode,
             "last_message": str(coordinator.last_message),
             "areas": {k: asdict(v) for k, v in coordinator.areas.items()},
             "power": coordinator.power,

@@ -568,5 +568,8 @@ class AlertingEngine:
         self.state = ESCALATION_IDLE
         self.current = None
         self.acknowledged_by = None
+        # Reset is the all clear, so it also drops the latched fire indicator,
+        # letting the blinds and heating return to normal.
+        self.coordinator.clear_fire()
         self._notify_entities()
         self.hass.async_create_task(self._clear_critical_push())

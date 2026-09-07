@@ -142,7 +142,9 @@ Everything except the areas can be changed later, live, from the options.
 | `binary_sensor.*_site_reachable` | TCP probe to the site gateway |
 | `binary_sensor.*_panel_reachable` | Panel in contact, from data still flowing |
 | `binary_sensor.*_zone_problem` | Any zone in tamper or fault, a permanent tamper zone included |
+| `binary_sensor.*_fire` | On while a real fire is active, off during a fire test, for automations to gate on |
 | `switch.*_maintenance_mode` | Suppresses faults, never suppresses alarms |
+| `switch.*_fire_test_mode` | Quiets the fire alert for a weekly check, fails back on |
 | `button.*_test_alerts` | Runs the full ladder with a marked test |
 | `button.*_acknowledge` | Stops a running ladder |
 | `button.*_create_dashboard` | Adds an Alarm view to the Scout Hut sidebar dashboard |
@@ -157,6 +159,23 @@ real entity ids filled in for you. It writes to the same `scout-hut` dashboard
 the companion heating integration uses, and merges rather than replaces, so the
 two sit as separate tabs under one dashboard and neither wipes the other. It is
 opt in, so nothing appears in the sidebar until you press the button.
+
+## Fire test mode, for weekly checks
+
+Turning on the fire test mode switch quiets the fire alert so a weekly fire alarm
+check does not wake keyholders, hold the heating or move the blinds. The fire is
+still written to the logbook for the audit trail. It is deliberately unlike
+maintenance mode, which never suppresses a critical alert, so it is built to fail
+back on and can never be left suppressing a fire for long: it ends when the fire
+link has been quiet for a couple of minutes after a test, when the backstop
+window elapses (30 minutes by default, hard capped at 60), or on a restart, and
+posts a notification when it does.
+
+The `binary_sensor.*_fire` is the signal to gate automations on. It follows a
+real fire and stays off during a test, so a cover automation can force the blinds
+open on fire while ignoring the weekly check. With the hvorragend cover control
+blueprint, point `auto_up_force` at it and keep `auto_recover_after_force`
+enabled.
 
 ## Services
 

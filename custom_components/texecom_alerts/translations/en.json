@@ -71,7 +71,8 @@
           "ladder_rounds": "Escalation rounds",
           "round_seconds": "Seconds to wait per round",
           "probe_seconds": "Reachability probe interval (seconds)",
-          "maintenance_hours": "Maintenance mode expires after (hours)"
+          "maintenance_hours": "Maintenance mode expires after (hours)",
+          "fire_test_minutes": "Fire test mode backstop window (minutes, ends early once the fire link is quiet)"
         }
       }
     }

@@ -47,6 +47,7 @@ RESTART_REQUIRED = "__restart_required__"
 # (helper key, display name) rows. A row is silently dropped when the helper is
 # missing from the registry, so the view is always valid.
 _HEALTH = [
+    ("fire", "Fire"),
     ("panel_reachable", "Panel in contact"),
     ("site_reachable", "Site reachable"),
     ("bridge", "Bridge online"),
@@ -60,6 +61,7 @@ _POWER = [
     ("battery_charging_current", "Battery charging current"),
 ]
 _CONTROLS = [
+    ("fire_test_mode", "Fire test mode"),
     ("maintenance_mode", "Maintenance mode"),
     ("acknowledge", "Acknowledge"),
     ("test_alerts", "Test alerts"),

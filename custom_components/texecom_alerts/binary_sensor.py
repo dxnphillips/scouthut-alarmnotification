@@ -26,6 +26,7 @@ async def async_setup_entry(
         TexecomAnyArmed(coordinator, entry),
         TexecomBridge(coordinator, entry),
         TexecomDataHealthy(coordinator, entry),
+        TexecomFire(coordinator, entry),
         TexecomPanelReachable(coordinator, entry),
         TexecomZoneProblem(coordinator, entry),
     ]
@@ -94,6 +95,28 @@ class TexecomDataHealthy(TexecomEntity, BinarySensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return when the last panel message arrived."""
         return {"last_message": self.coordinator.last_message}
+
+
+class TexecomFire(TexecomEntity, BinarySensorEntity):
+    """On while a real fire is active, and deliberately off during a test.
+
+    The single, test aware source of truth for fire, for automations, the
+    blinds and the heating hold to gate on. It follows the fire link and clears
+    on an alerting reset, and a fire test never turns it on, so a weekly check
+    leaves the blinds alone.
+    """
+
+    _attr_name = "Fire"
+    _attr_device_class = BinarySensorDeviceClass.SMOKE
+
+    def __init__(self, coordinator: Any, entry: Any) -> None:
+        """Initialise."""
+        super().__init__(coordinator, entry, "fire")
+
+    @property
+    def is_on(self) -> bool:
+        """Return whether a real fire is currently active."""
+        return self.coordinator.fire_active
 
 
 class TexecomSiteReachable(TexecomEntity, BinarySensorEntity):

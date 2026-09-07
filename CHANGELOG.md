@@ -3,6 +3,21 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.6.0
+
+- A test aware fire indicator, `binary_sensor.<site>_fire`, on while a real fire
+  is active and cleared when the fire link returns to normal or the alerting is
+  reset. It is the single source of truth for fire, for automations, the blinds
+  and the heating hold to gate on, and a fire test deliberately never turns it
+  on, so a weekly check leaves the blinds alone.
+- Fire test mode, a switch for weekly fire alarm checks. While on, a fire is
+  logged for the audit trail but raises no alert, no heating hold and no blind
+  movement. It is deliberately the opposite of maintenance mode, which never
+  touches critical, so it is ringed with safety: it fails back on when the fire
+  link goes quiet after a test, when a backstop window elapses (30 minutes by
+  default, hard capped at 60 and configurable), or on a restart, and says so
+  when it ends.
+
 ## 1.5.1
 
 - Fire conditions now also emit texecom_alerts_event (event_type Fire) on the

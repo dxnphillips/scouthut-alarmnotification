@@ -81,3 +81,47 @@ async def test_fire_log_event_fires_bus_event(hass):
 
     fires = [e for e in events if e.get("event_type") == "Fire"]
     assert fires, "Fire log event did not emit a Fire event on the bus"
+
+
+async def test_fire_activation_sets_the_indicator(hass):
+    """A real fire latches the test aware fire indicator on."""
+    coordinator = _coordinator(hass)
+
+    coordinator._evaluate_zone({"name": "Fire", "number": 3, "status": "active"})
+    await hass.async_block_till_done()
+
+    assert coordinator.fire_active is True
+
+
+async def test_fire_test_mode_suppresses_everything(hass):
+    """In fire test mode a fire raises no alert, no bus event and no indicator."""
+    coordinator = _coordinator(hass)
+    events = _fire_events(hass)
+
+    coordinator.set_fire_test(True)
+    assert coordinator.fire_test_mode is True
+
+    coordinator._evaluate_zone({"name": "Fire", "number": 3, "status": "active"})
+    await hass.async_block_till_done()
+
+    fires = [e for e in events if e.get("event_type") == "Fire"]
+    assert not fires, "fire test mode did not suppress the Fire bus event"
+    assert coordinator.fire_active is False, "fire test mode turned the indicator on"
+
+    coordinator.set_fire_test(False)
+    assert coordinator.fire_test_mode is False
+
+
+async def test_fire_test_window_is_capped(hass):
+    """The backstop window can never exceed the hard cap, whatever the option."""
+    from custom_components.texecom_alerts.const import MAX_FIRE_TEST_MINUTES
+    from custom_components.texecom_alerts.coordinator import TexecomCoordinator
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Scout HQ",
+        data={"areas": ["A"], "fire_zones": ["3"], "fire_test_minutes": 999},
+    )
+    entry.add_to_hass(hass)
+    coordinator = TexecomCoordinator(hass, entry)
+    assert coordinator.fire_test_minutes == MAX_FIRE_TEST_MINUTES

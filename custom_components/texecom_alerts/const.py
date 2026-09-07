@@ -74,6 +74,9 @@ CONF_LADDER_ROUNDS: Final = "ladder_rounds"
 CONF_ROUND_SECONDS: Final = "round_seconds"
 CONF_PROBE_SECONDS: Final = "probe_seconds"
 CONF_MAINTENANCE_HOURS: Final = "maintenance_hours"
+# The backstop window for fire test mode. Short by design and hard capped,
+# because a mode that suppresses a fire alert must never be left on for long.
+CONF_FIRE_TEST_MINUTES: Final = "fire_test_minutes"
 
 # Defaults
 DEFAULT_SITE_NAME: Final = "Scout HQ"
@@ -86,6 +89,13 @@ DEFAULT_LADDER_ROUNDS: Final = 5
 DEFAULT_ROUND_SECONDS: Final = 90
 DEFAULT_PROBE_SECONDS: Final = 60
 DEFAULT_MAINTENANCE_HOURS: Final = 4
+DEFAULT_FIRE_TEST_MINUTES: Final = 30
+# Never let fire test mode be set longer than this, whatever the option says.
+MAX_FIRE_TEST_MINUTES: Final = 60
+# How long the fire link must sit back at normal before test mode ends early.
+# Comfortably longer than a one minute test burst so a single test does not end
+# it between pulses, while still ending it promptly once the link is quiet.
+FIRE_TEST_SETTLE_SECONDS: Final = 120
 DEFAULT_ESCALATE_TAMPERS: Final = False
 DEFAULT_NOTIFY_ARM_DISARM: Final = True
 DEFAULT_NOTIFY_ACTIVITY: Final = False

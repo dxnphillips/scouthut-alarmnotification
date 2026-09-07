@@ -36,6 +36,7 @@ from .const import (
     CONF_CRITICAL_SOUND,
     CONF_ESCALATE_TAMPERS,
     CONF_FIRE_SOUND,
+    CONF_FIRE_TEST_MINUTES,
     CONF_FIRE_ZONES,
     CONF_GATEWAY_HOST,
     CONF_GATEWAY_PORT,
@@ -59,6 +60,7 @@ from .const import (
     DEFAULT_BATTERY_LOW_VOLTS,
     DEFAULT_CRITICAL_SOUND,
     DEFAULT_ESCALATE_TAMPERS,
+    DEFAULT_FIRE_TEST_MINUTES,
     DEFAULT_GATEWAY_PORT,
     DEFAULT_LADDER_ROUNDS,
     DEFAULT_MAINTENANCE_HOURS,
@@ -255,6 +257,16 @@ class TexecomOptionsFlow(OptionsFlow):
                 ): NumberSelector(
                     NumberSelectorConfig(
                         min=1, max=24, step=1, mode=NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(
+                    CONF_FIRE_TEST_MINUTES,
+                    default=current.get(
+                        CONF_FIRE_TEST_MINUTES, DEFAULT_FIRE_TEST_MINUTES
+                    ),
+                ): NumberSelector(
+                    NumberSelectorConfig(
+                        min=5, max=60, step=5, mode=NumberSelectorMode.BOX
                     )
                 ),
             }

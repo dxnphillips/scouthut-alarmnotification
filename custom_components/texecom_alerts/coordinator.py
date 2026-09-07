@@ -8,12 +8,12 @@ from collections import deque
 from datetime import timedelta
 from typing import Any
 
-from homeassistant.components import mqtt
+from homeassistant.components import logbook, mqtt, persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.dispatcher import async_dispatcher_send
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.event import async_call_later, async_track_time_interval
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -23,6 +23,7 @@ from .const import (
     AUX_ALARM_EVENTS,
     CONF_AREAS,
     CONF_ESCALATE_TAMPERS,
+    CONF_FIRE_TEST_MINUTES,
     CONF_FIRE_ZONES,
     CONF_GATEWAY_HOST,
     CONF_GATEWAY_PORT,
@@ -33,15 +34,19 @@ from .const import (
     CONF_STALE_MINUTES,
     CRITICAL_EVENTS,
     DEFAULT_ESCALATE_TAMPERS,
+    DEFAULT_FIRE_TEST_MINUTES,
     DEFAULT_GATEWAY_PORT,
     DEFAULT_NOTIFY_ACTIVITY,
     DEFAULT_NOTIFY_ARM_DISARM,
     DEFAULT_PREFIX,
     DEFAULT_PROBE_SECONDS,
     DEFAULT_STALE_MINUTES,
+    DOMAIN,
     EVENT_TEXECOM,
     FAULT_EVENTS,
     FIRE_EVENTS,
+    FIRE_TEST_SETTLE_SECONDS,
+    MAX_FIRE_TEST_MINUTES,
     PROBE_TIMEOUT,
     SEVERITY_ACTIVITY,
     SEVERITY_CRITICAL,
@@ -141,6 +146,12 @@ class TexecomCoordinator:
             for z in (opts.get(CONF_FIRE_ZONES) or [])
             if str(z).strip()
         }
+        # The backstop window for fire test mode, clamped so it can never be set
+        # long enough to leave a fire suppressed for an unsafe stretch.
+        self.fire_test_minutes: int = min(
+            max(int(opts.get(CONF_FIRE_TEST_MINUTES, DEFAULT_FIRE_TEST_MINUTES)), 1),
+            MAX_FIRE_TEST_MINUTES,
+        )
 
         # State
         self.areas: dict[str, AreaState] = {}
@@ -161,6 +172,17 @@ class TexecomCoordinator:
         # When the last fire alert went out, to collapse the several signals a
         # single fire produces into one loud ladder.
         self._last_fire: Any = None
+        # A latched, test aware fire indicator for automations, blinds and the
+        # heating hold. On for a real fire, held off during a test, cleared when
+        # the fire link returns to normal or the alerting is reset.
+        self.fire_active: bool = False
+        # Fire test mode, and the timers that guarantee it fails back on: the
+        # backstop window, and the settle that ends it early once the fire link
+        # has been quiet for a spell.
+        self.fire_test_mode: bool = False
+        self._fire_test_seen_active: bool = False
+        self._fire_test_window_unsub: Any = None
+        self._fire_test_settle_unsub: Any = None
         # A short history of recent log events, for diagnostics and to see what
         # a test activation actually produced.
         self.recent_events: deque[dict[str, Any]] = deque(maxlen=25)
@@ -197,6 +219,7 @@ class TexecomCoordinator:
 
     async def async_shutdown(self) -> None:
         """Tear everything down."""
+        self._cancel_fire_test_timers()
         for unsub in self._unsubs:
             unsub()
         self._unsubs.clear()
@@ -345,14 +368,21 @@ class TexecomCoordinator:
         condition = _zone_condition(data.get("status"))
         _LOGGER.debug("Zone %s status %r -> %s", name, data.get("status"), condition)
 
-        # A fire zone going active is a fire, armed or disarmed. This overrides
-        # the usual rule that an active zone is left to the area topic, because
-        # a fire link programmed as an Auxiliary zone raises only a silent panel
-        # alarm and may never set the area to triggered, so the zone going active
-        # is the one dependable signal.
-        if condition == "active" and self._is_fire_zone(name, number):
-            self.hass.async_create_task(self._raise_fire(name))
-            return
+        # A fire zone is watched across its whole active-then-normal cycle, not
+        # just the activation, so the fire indicator can follow it and fire test
+        # mode can end early once the link is quiet. An activation is a fire,
+        # armed or disarmed, overriding the usual rule that an active zone is
+        # left to the area topic, because a fire link wired as an Auxiliary zone
+        # raises only a silent panel alarm and may never set the area to
+        # triggered. A tamper or fault on the fire link still falls through to
+        # the zone problem path below.
+        if self._is_fire_zone(name, number):
+            if condition == "active":
+                self._fire_zone_active(name)
+                return
+            if condition == "normal":
+                self._fire_zone_normal()
+                return
 
         previous = self.zone_problems.get(name)
         if condition in ("tamper", "fault"):
@@ -361,6 +391,102 @@ class TexecomCoordinator:
                 self.hass.async_create_task(self._zone_problem(name, condition))
         elif previous is not None:
             del self.zone_problems[name]
+
+    # ------------------------------------------------------------------
+    # Fire indicator and fire test mode
+    # ------------------------------------------------------------------
+
+    def _fire_zone_active(self, name: str) -> None:
+        """Handle the fire link operating: raise the fire and note it for a test."""
+        # Note the operation for the test auto exit even while suppressed, and
+        # cancel any pending settle since the link is active again.
+        self._fire_test_seen_active = True
+        self._cancel_fire_test_settle()
+        self.hass.async_create_task(self._raise_fire(name))
+
+    def _fire_zone_normal(self) -> None:
+        """Handle the fire link returning to normal: the fire alarm has stopped."""
+        # Follow the link down: the fire indicator clears when the alarm stops.
+        self._set_fire_active(False)
+        # If a test operated the link, start the settle so test mode ends once
+        # the link has stayed quiet, with the window still the hard backstop.
+        if self.fire_test_mode and self._fire_test_seen_active:
+            self._start_fire_test_settle()
+
+    def _set_fire_active(self, value: bool) -> None:
+        """Move the latched fire indicator, notifying entities on a change."""
+        if self.fire_active == value:
+            return
+        self.fire_active = value
+        self._notify()
+
+    def clear_fire(self) -> None:
+        """Clear the fire indicator, on an all clear such as an alerting reset."""
+        self._set_fire_active(False)
+
+    def set_fire_test(self, on: bool) -> None:
+        """Enter or leave fire test mode.
+
+        Turning it on suppresses the fire alert so a weekly fire alarm check does
+        not wake anyone or move the blinds, and starts the backstop window.
+        Turning it off, the window elapsing, or the fire link going quiet after a
+        test all end it, so it always fails back on.
+        """
+        self._cancel_fire_test_timers()
+        self._fire_test_seen_active = False
+        self.fire_test_mode = on
+        if on:
+            self._fire_test_window_unsub = async_call_later(
+                self.hass,
+                timedelta(minutes=self.fire_test_minutes).total_seconds(),
+                self._fire_test_window_elapsed,
+            )
+        self._notify()
+
+    def _cancel_fire_test_settle(self) -> None:
+        if self._fire_test_settle_unsub:
+            self._fire_test_settle_unsub()
+            self._fire_test_settle_unsub = None
+
+    def _cancel_fire_test_timers(self) -> None:
+        self._cancel_fire_test_settle()
+        if self._fire_test_window_unsub:
+            self._fire_test_window_unsub()
+            self._fire_test_window_unsub = None
+
+    def _start_fire_test_settle(self) -> None:
+        self._cancel_fire_test_settle()
+        self._fire_test_settle_unsub = async_call_later(
+            self.hass, FIRE_TEST_SETTLE_SECONDS, self._fire_test_settled
+        )
+
+    @callback
+    def _fire_test_settled(self, _now: Any) -> None:
+        self._fire_test_settle_unsub = None
+        if self.fire_test_mode:
+            self._end_fire_test("the fire link returned to normal")
+
+    @callback
+    def _fire_test_window_elapsed(self, _now: Any) -> None:
+        self._fire_test_window_unsub = None
+        if self.fire_test_mode:
+            self._end_fire_test("the test window elapsed")
+
+    def _end_fire_test(self, reason: str) -> None:
+        """Leave fire test mode and say so, so it is never left on silently."""
+        self._cancel_fire_test_timers()
+        self.fire_test_mode = False
+        self._fire_test_seen_active = False
+        self._notify()
+        persistent_notification.async_create(
+            self.hass,
+            (
+                f"Fire test mode at {self.entry.title} has ended, {reason}. "
+                "Fire alerting is live again."
+            ),
+            title="Fire test mode ended",
+            notification_id=f"texecom_fire_test_{self.entry.entry_id}",
+        )
 
     async def _zone_problem(self, name: str, condition: str) -> None:
         if condition == "tamper":
@@ -712,6 +838,24 @@ class TexecomCoordinator:
             return
         self._last_fire = now
         where = str(source).strip() if source not in (None, "") else "a fire zone"
+
+        # Fire test mode: record the test for the audit trail, but do not alert,
+        # hold the heating, flip the fire indicator or move the blinds, so a
+        # weekly fire alarm check is silent. The indicator staying off is what
+        # keeps the blinds still through the test.
+        if self.fire_test_mode:
+            _LOGGER.info("Fire test mode: fire from %s suppressed", where)
+            logbook.async_log_entry(
+                self.hass,
+                self.entry.title,
+                f"Fire alarm test, alert suppressed (from {where})",
+                DOMAIN,
+            )
+            return
+
+        # A real fire: latch the indicator so automations, the blinds and the
+        # heating hold can follow it until the fire link returns to normal.
+        self._set_fire_active(True)
 
         # Put fire on the event bus as a Fire event, so an external automation,
         # such as the heating integration's fire safety hold, can react. Both
