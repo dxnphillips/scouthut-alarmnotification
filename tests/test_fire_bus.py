@@ -176,6 +176,43 @@ async def test_fire_test_does_not_force_covers_closed_on_a_trigger(hass):
     assert (coordinator.area_armed("A") and not coordinator.fire_or_test) is True
 
 
+async def test_area_trigger_coinciding_with_fire_is_not_an_intruder(hass):
+    """The fire link tripping the area must not raise a spurious ALARM ACTIVATION.
+
+    The Auxiliary fire link sets the area to triggered with no zone named, at the
+    same moment as the fire, so a bare activation this close to a fire is that
+    fire, not a break in.
+    """
+    from custom_components.texecom_alerts.models import AreaState
+
+    coordinator = _coordinator(hass)
+    captured = []
+
+    async def _listen(alert):
+        captured.append(alert)
+
+    coordinator.add_alert_listener(_listen)
+
+    # The fire link fires as an Auxiliary alarm on zone 3.
+    msg = SimpleNamespace(
+        payload=json.dumps(
+            {"type": "Auxiliary", "description": "Auxiliary Alarm", "parameter": 3}
+        )
+    )
+    coordinator._handle_log(msg)
+    await hass.async_block_till_done()
+
+    # The same fire then trips the area, with no zone named.
+    await coordinator._area_triggered(
+        AreaState(area_id="A", name="Main", status="triggered")
+    )
+    await hass.async_block_till_done()
+
+    headlines = [a.headline for a in captured]
+    assert not any("ALARM ACTIVATION" in h for h in headlines), headlines
+    assert any(h.startswith("FIRE at") for h in headlines), headlines
+
+
 async def test_fire_test_window_is_capped(hass):
     """The backstop window can never exceed the hard cap, whatever the option."""
     from custom_components.texecom_alerts.const import MAX_FIRE_TEST_MINUTES

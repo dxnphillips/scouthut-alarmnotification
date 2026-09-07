@@ -74,6 +74,11 @@ SITE_CONFIRM_ONLINE = 2
 # Collapse them within this window so a single fire raises one loud ladder.
 FIRE_DEDUP_SECONDS = 60
 
+# A fire link often trips the area on its own silent alarm at the same instant
+# as the fire, with no zone named, which otherwise looks like an intruder. An
+# area activation within this window of a fire is taken to be that fire.
+FIRE_CORRELATE_SECONDS = 30
+
 _HUMAN_STATUS: dict[str, str] = {
     "full_armed": "armed away",
     "part_armed_1": "part armed 1",
@@ -834,11 +839,29 @@ class TexecomCoordinator:
     # Alert raising
     # ------------------------------------------------------------------
 
+    def _recent_fire(self) -> bool:
+        """Whether a fire was raised just now, for correlating an activation.
+
+        The fire link often trips the area on its own silent alarm, at the same
+        instant as the fire and with no zone named, so an activation this close
+        to a fire is that fire, not an intruder.
+        """
+        if self._last_fire is None:
+            return False
+        return (dt_util.utcnow() - self._last_fire) < timedelta(
+            seconds=FIRE_CORRELATE_SECONDS
+        )
+
     async def _area_triggered(self, area: AreaState) -> None:
-        # If the zone that triggered the area is a fire link, this is a fire, not
-        # a break in. Route it to the fire alert, deduplicated against the zone
-        # feed so one fire does not alert twice.
-        if self._is_fire_zone(area.last_active_zone, area.last_active_zone_number):
+        # A break in, unless it is the fire link. That shows either as the fire
+        # zone naming the activation, or, on a silent Auxiliary alarm, as an
+        # activation with no zone named at the same instant as the fire. Both are
+        # routed to the fire path, deduplicated, so one fire does not also raise a
+        # spurious ALARM ACTIVATION, and it stays suppressed in a fire test.
+        if (
+            self._is_fire_zone(area.last_active_zone, area.last_active_zone_number)
+            or self._recent_fire()
+        ):
             await self._raise_fire(area.last_active_zone or area.name, [area.name])
             return
         zone = area.last_active_zone or "not reported"

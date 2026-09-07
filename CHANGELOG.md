@@ -3,6 +3,16 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.6.5
+
+- Fix the fire link raising a spurious intruder alert. The Auxiliary fire link
+  trips the area on a silent alarm with no zone named, at the same instant as the
+  fire, so the area path read it as a break in and raised ALARM ACTIVATION, which
+  was not suppressed by a fire test. An area activation within thirty seconds of a
+  fire is now taken to be that fire and routed to the fire path, deduplicated, so
+  it raises no separate alarm and stays suppressed in a test. A genuine intruder,
+  with no fire, still alarms as before.
+
 ## 1.6.4
 
 - Fix a fire test shutting the blinds. The Auxiliary fire link raises a silent
