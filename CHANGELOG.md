@@ -3,6 +3,14 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.6.2
+
+- Fire test mode now keeps a fire off the event bus entirely, whatever the panel
+  calls the event. Previously the generic mirror of every panel event could put
+  a Fire event on the bus during a test if the zone was a proper Fire type, so a
+  fire consumer such as the heating hold might have reacted to a weekly check. A
+  fire during a test is still recorded in recent events and the logbook.
+
 ## 1.6.1
 
 - Two ready made cover control helpers, so a cover control automation needs no

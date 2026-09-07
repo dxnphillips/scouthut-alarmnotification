@@ -112,6 +112,26 @@ async def test_fire_test_mode_suppresses_everything(hass):
     assert coordinator.fire_test_mode is False
 
 
+async def test_fire_test_mode_keeps_a_fire_log_event_off_the_bus(hass):
+    """Even a Fire type log event stays off the bus during a fire test.
+
+    So a fire consumer such as the heating hold never reacts to a weekly check,
+    whatever the panel calls the event.
+    """
+    coordinator = _coordinator(hass)
+    events = _fire_events(hass)
+
+    coordinator.set_fire_test(True)
+    msg = SimpleNamespace(payload=json.dumps({"type": "Fire", "description": "Fire"}))
+    coordinator._handle_log(msg)
+    await hass.async_block_till_done()
+
+    fires = [e for e in events if e.get("event_type") == "Fire"]
+    assert not fires, "a Fire log event leaked onto the bus during a fire test"
+
+    coordinator.set_fire_test(False)
+
+
 async def test_fire_test_window_is_capped(hass):
     """The backstop window can never exceed the hard cap, whatever the option."""
     from custom_components.texecom_alerts.const import MAX_FIRE_TEST_MINUTES

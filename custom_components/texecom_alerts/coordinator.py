@@ -671,15 +671,21 @@ class TexecomCoordinator:
         self._touch()
         self._notify()
 
-        # Always publish to the bus, whatever the severity, so a user can
-        # build their own automations without forking this integration.
-        self.hass.bus.async_fire(EVENT_TEXECOM, event.as_event_data())
-
         # A fire, whether reported as a Fire event or as an Auxiliary alarm on a
         # configured fire zone, routes to the dedicated fire alert rather than a
         # generic activation. Deduplicated so it does not double with the zone
         # feed or an area trigger.
         fire_source = self._log_fire_source(event_type, event, data)
+
+        # Publish to the bus, whatever the severity, so a user can build their
+        # own automations without forking this integration. The one exception is
+        # a fire during a fire test: it is kept off the bus entirely, whatever
+        # the panel calls it, so no fire consumer, such as the heating hold,
+        # reacts to a weekly check. The event stays in recent events and the
+        # logbook for the audit trail.
+        if not (fire_source is not None and self.fire_test_mode):
+            self.hass.bus.async_fire(EVENT_TEXECOM, event.as_event_data())
+
         if fire_source is not None:
             self.hass.async_create_task(self._raise_fire(fire_source, event.areas))
             return
