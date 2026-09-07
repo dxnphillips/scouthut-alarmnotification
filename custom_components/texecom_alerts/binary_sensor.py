@@ -146,7 +146,7 @@ class TexecomCoverForceClose(TexecomEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         """Return whether covers should be forced closed."""
-        return self.coordinator.any_area_armed and not self.coordinator.fire_active
+        return self.coordinator.any_area_armed and not self.coordinator.fire_or_test
 
 
 class TexecomCoverForceOpen(TexecomEntity, BinarySensorEntity):
@@ -169,7 +169,7 @@ class TexecomCoverForceOpen(TexecomEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         """Return whether covers should be forced open."""
-        return not self.coordinator.any_area_armed or self.coordinator.fire_active
+        return not self.coordinator.any_area_armed or self.coordinator.fire_or_test
 
 
 class TexecomAreaCoverForceClose(TexecomEntity, BinarySensorEntity):
@@ -195,7 +195,7 @@ class TexecomAreaCoverForceClose(TexecomEntity, BinarySensorEntity):
         """Return whether this area's covers should be forced closed."""
         return (
             self.coordinator.area_armed(self._area_id)
-            and not self.coordinator.fire_active
+            and not self.coordinator.fire_or_test
         )
 
 
@@ -221,7 +221,7 @@ class TexecomAreaCoverForceOpen(TexecomEntity, BinarySensorEntity):
         """Return whether this area's covers should be forced open."""
         return (
             not self.coordinator.area_armed(self._area_id)
-            or self.coordinator.fire_active
+            or self.coordinator.fire_or_test
         )
 
 

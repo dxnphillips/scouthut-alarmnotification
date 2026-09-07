@@ -3,6 +3,15 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.6.4
+
+- Fix a fire test shutting the blinds. The Auxiliary fire link raises a silent
+  alarm that sets the area to triggered even while a test suppresses the fire
+  indicator, so the cover force close read the test as an intruder and closed
+  the blinds. The cover force helpers now treat a fire test like a fire and stay
+  off through it, while a real intruder still closes the blinds. Alerts and the
+  heating hold remain suppressed during a test as before.
+
 ## 1.6.3
 
 - Per area cover force helpers, for a site that part arms its areas separately.

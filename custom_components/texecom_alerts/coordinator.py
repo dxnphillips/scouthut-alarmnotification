@@ -254,6 +254,18 @@ class TexecomCoordinator:
         return bool(area and area.status not in ("disarmed", "unknown"))
 
     @property
+    def fire_or_test(self) -> bool:
+        """True for a real fire or a fire test, for cover control only.
+
+        A fire test suppresses the fire indicator so alerts and the heating hold
+        stay quiet, but the panel still trips the area on the fire link's silent
+        alarm. Without treating a test as a fire, the cover force close would read
+        that trigger as an intruder and shut the blinds. Cover helpers gate on
+        this, so a test never closes a blind, while a real intruder still does.
+        """
+        return self.fire_active or self.fire_test_mode
+
+    @property
     def system_state(self) -> str:
         """Combined state across every monitored area."""
         if not self.areas:

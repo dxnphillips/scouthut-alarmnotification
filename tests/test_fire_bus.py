@@ -151,6 +151,31 @@ async def test_area_armed_covers_triggered_but_not_disarmed(hass):
     assert coordinator.area_armed("C") is False
 
 
+async def test_fire_test_does_not_force_covers_closed_on_a_trigger(hass):
+    """A fire test must not shut the blinds when the fire link trips the area.
+
+    The Auxiliary fire link raises a silent alarm that sets the area to
+    triggered even while a test suppresses the fire indicator, so the cover
+    force close must treat a test as a fire and stay off.
+    """
+    from custom_components.texecom_alerts.models import AreaState
+
+    coordinator = _coordinator(hass)
+    coordinator.areas["A"] = AreaState(area_id="A", name="Main", status="triggered")
+
+    coordinator.set_fire_test(True)
+    assert coordinator.area_armed("A") is True
+    assert coordinator.fire_active is False
+    assert coordinator.fire_or_test is True
+    # cover force close = area armed and not fire_or_test -> must be False.
+    assert (coordinator.area_armed("A") and not coordinator.fire_or_test) is False
+
+    coordinator.set_fire_test(False)
+    # With the test over and no fire, the same trigger reads as an intruder and
+    # the blind may close again.
+    assert (coordinator.area_armed("A") and not coordinator.fire_or_test) is True
+
+
 async def test_fire_test_window_is_capped(hass):
     """The backstop window can never exceed the hard cap, whatever the option."""
     from custom_components.texecom_alerts.const import MAX_FIRE_TEST_MINUTES
