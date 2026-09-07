@@ -3,6 +3,15 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.6.6
+
+- Fire test mode now ends reliably a couple of minutes after the last activation
+  whatever path the fire arrives by. The auto exit was tied to the zone feed
+  reporting the link going quiet, so a fire link that reports only as an
+  Auxiliary log event left the test to run to the backstop window. The settle
+  now restarts on every fire detection, log or zone feed, so it ends shortly
+  after the fire link falls quiet on either.
+
 ## 1.6.5
 
 - Fix the fire link raising a spurious intruder alert. The Auxiliary fire link

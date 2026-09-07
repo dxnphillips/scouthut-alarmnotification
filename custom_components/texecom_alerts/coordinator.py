@@ -185,7 +185,6 @@ class TexecomCoordinator:
         # backstop window, and the settle that ends it early once the fire link
         # has been quiet for a spell.
         self.fire_test_mode: bool = False
-        self._fire_test_seen_active: bool = False
         self._fire_test_window_unsub: Any = None
         self._fire_test_settle_unsub: Any = None
         # A short history of recent log events, for diagnostics and to see what
@@ -426,20 +425,18 @@ class TexecomCoordinator:
     # ------------------------------------------------------------------
 
     def _fire_zone_active(self, name: str) -> None:
-        """Handle the fire link operating: raise the fire and note it for a test."""
-        # Note the operation for the test auto exit even while suppressed, and
-        # cancel any pending settle since the link is active again.
-        self._fire_test_seen_active = True
-        self._cancel_fire_test_settle()
+        """Handle the fire link operating on the zone feed: raise the fire."""
+        # The settle for the test auto exit is (re)started by _raise_fire, so it
+        # tracks every fire however it is detected, not just the zone feed.
         self.hass.async_create_task(self._raise_fire(name))
 
     def _fire_zone_normal(self) -> None:
         """Handle the fire link returning to normal: the fire alarm has stopped."""
         # Follow the link down: the fire indicator clears when the alarm stops.
         self._set_fire_active(False)
-        # If a test operated the link, start the settle so test mode ends once
-        # the link has stayed quiet, with the window still the hard backstop.
-        if self.fire_test_mode and self._fire_test_seen_active:
+        # A return to normal is a sign the test is winding down, so restart the
+        # settle from here too, for a link that does report on the zone feed.
+        if self.fire_test_mode:
             self._start_fire_test_settle()
 
     def _set_fire_active(self, value: bool) -> None:
@@ -462,7 +459,6 @@ class TexecomCoordinator:
         test all end it, so it always fails back on.
         """
         self._cancel_fire_test_timers()
-        self._fire_test_seen_active = False
         self.fire_test_mode = on
         if on:
             self._fire_test_window_unsub = async_call_later(
@@ -505,7 +501,6 @@ class TexecomCoordinator:
         """Leave fire test mode and say so, so it is never left on silently."""
         self._cancel_fire_test_timers()
         self.fire_test_mode = False
-        self._fire_test_seen_active = False
         self._notify()
         persistent_notification.async_create(
             self.hass,
@@ -885,6 +880,12 @@ class TexecomCoordinator:
         suppressed by maintenance mode, which the critical severity guarantees.
         """
         now = dt_util.utcnow()
+        # In a fire test, every detection pushes the auto exit out, whatever path
+        # found the fire, so test mode ends a settle after the last activation
+        # even for a link that only reports as an Auxiliary log event. Done before
+        # the dedup below, so a repeat activation still restarts the settle.
+        if self.fire_test_mode:
+            self._start_fire_test_settle()
         if self._last_fire is not None and (now - self._last_fire) < timedelta(
             seconds=FIRE_DEDUP_SECONDS
         ):
