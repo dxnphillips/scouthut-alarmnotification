@@ -8,10 +8,12 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import TexecomConfigEntry
+from .const import SIGNAL_UPDATE
 from .entity import TexecomEntity
 
 
@@ -35,6 +37,31 @@ async def async_setup_entry(
     if coordinator.gateway_host:
         entities.append(TexecomSiteReachable(coordinator, entry))
     async_add_entities(entities)
+
+    # Per area cover force helpers, added as each area is discovered, for a
+    # cover control automation on a site that part arms its areas separately.
+    # Off by default, like the site wide pair, since they are only wanted where
+    # blinds follow the alarm.
+    added_areas: set[str] = set()
+
+    @callback
+    def _add_area_covers() -> None:
+        new = [area_id for area_id in coordinator.areas if area_id not in added_areas]
+        if not new:
+            return
+        added_areas.update(new)
+        extra: list[TexecomEntity] = []
+        for area_id in sorted(new):
+            extra.append(TexecomAreaCoverForceClose(coordinator, entry, area_id))
+            extra.append(TexecomAreaCoverForceOpen(coordinator, entry, area_id))
+        async_add_entities(extra)
+
+    _add_area_covers()
+    entry.async_on_unload(
+        async_dispatcher_connect(
+            hass, SIGNAL_UPDATE.format(entry.entry_id), _add_area_covers
+        )
+    )
 
 
 class TexecomAnyArmed(TexecomEntity, BinarySensorEntity):
@@ -143,6 +170,59 @@ class TexecomCoverForceOpen(TexecomEntity, BinarySensorEntity):
     def is_on(self) -> bool:
         """Return whether covers should be forced open."""
         return not self.coordinator.any_area_armed or self.coordinator.fire_active
+
+
+class TexecomAreaCoverForceClose(TexecomEntity, BinarySensorEntity):
+    """Per area cover force close: on when this area is set, never during a fire.
+
+    For a part armed site, so a blind closes when its own area is armed rather
+    than when any area is. On through an armed state, an entry or exit, and an
+    intruder activation, and off during a fire. Off by default.
+    """
+
+    _attr_icon = "mdi:window-shutter"
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: Any, entry: Any, area_id: str) -> None:
+        """Initialise."""
+        super().__init__(coordinator, entry, f"area_{area_id}_cover_force_close")
+        self._area_id = area_id
+        area = coordinator.areas.get(area_id)
+        self._attr_name = f"{area.name if area else area_id} cover force close"
+
+    @property
+    def is_on(self) -> bool:
+        """Return whether this area's covers should be forced closed."""
+        return (
+            self.coordinator.area_armed(self._area_id)
+            and not self.coordinator.fire_active
+        )
+
+
+class TexecomAreaCoverForceOpen(TexecomEntity, BinarySensorEntity):
+    """Per area cover force open: on when this area is disarmed, or during a fire.
+
+    For a blind that stays open while its own area is unarmed, on a part armed
+    site, and always open on a fire. Off by default.
+    """
+
+    _attr_icon = "mdi:window-shutter-open"
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: Any, entry: Any, area_id: str) -> None:
+        """Initialise."""
+        super().__init__(coordinator, entry, f"area_{area_id}_cover_force_open")
+        self._area_id = area_id
+        area = coordinator.areas.get(area_id)
+        self._attr_name = f"{area.name if area else area_id} cover force open"
+
+    @property
+    def is_on(self) -> bool:
+        """Return whether this area's covers should be forced open."""
+        return (
+            not self.coordinator.area_armed(self._area_id)
+            or self.coordinator.fire_active
+        )
 
 
 class TexecomFire(TexecomEntity, BinarySensorEntity):

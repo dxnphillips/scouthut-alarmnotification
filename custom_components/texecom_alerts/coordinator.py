@@ -241,6 +241,18 @@ class TexecomCoordinator:
         """True if any monitored area is armed in any form."""
         return any(a.status in ARMED_STATES for a in self.areas.values())
 
+    def area_armed(self, area_id: str) -> bool:
+        """Whether one area is set, for per area cover control on a part armed site.
+
+        Anything but disarmed counts, so a blind stays closed through an armed
+        state, an entry or exit delay, and an intruder activation, and only a
+        disarm opens it. A fire is handled separately by the fire indicator, so a
+        cover force helper still opens on a fire even while the area reads
+        triggered.
+        """
+        area = self.areas.get(area_id)
+        return bool(area and area.status not in ("disarmed", "unknown"))
+
     @property
     def system_state(self) -> str:
         """Combined state across every monitored area."""

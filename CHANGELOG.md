@@ -3,6 +3,17 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.6.3
+
+- Per area cover force helpers, for a site that part arms its areas separately.
+  `binary_sensor.<site>_<area>_cover_force_close` is on when that area is set and
+  never during a fire, and `binary_sensor.<site>_<area>_cover_force_open` is on
+  when that area is disarmed or during a fire, so each blind can follow its own
+  area rather than the whole building. The armed state includes an entry or exit
+  and an intruder activation, so an intruder still closes the blind while a fire
+  opens it. Added as each area is discovered, and off by default like the site
+  wide pair.
+
 ## 1.6.2
 
 - Fire test mode now keeps a fire off the event bus entirely, whatever the panel

@@ -132,6 +132,25 @@ async def test_fire_test_mode_keeps_a_fire_log_event_off_the_bus(hass):
     coordinator.set_fire_test(False)
 
 
+async def test_area_armed_covers_triggered_but_not_disarmed(hass):
+    """Per area arm state closes a blind through a trigger, opens only on disarm."""
+    from custom_components.texecom_alerts.models import AreaState
+
+    coordinator = _coordinator(hass)
+    coordinator.areas["A"] = AreaState(area_id="A", name="Main", status="full_armed")
+    coordinator.areas["B"] = AreaState(area_id="B", name="Office", status="disarmed")
+
+    assert coordinator.area_armed("A") is True
+    assert coordinator.area_armed("B") is False
+    # An intruder activation still counts as armed, so the blind stays closed.
+    coordinator.areas["A"].status = "triggered"
+    assert coordinator.area_armed("A") is True
+    coordinator.areas["A"].status = "disarmed"
+    assert coordinator.area_armed("A") is False
+    # An area we do not know about is never treated as armed.
+    assert coordinator.area_armed("C") is False
+
+
 async def test_fire_test_window_is_capped(hass):
     """The backstop window can never exceed the hard cap, whatever the option."""
     from custom_components.texecom_alerts.const import MAX_FIRE_TEST_MINUTES
