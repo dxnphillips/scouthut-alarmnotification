@@ -143,6 +143,8 @@ Everything except the areas can be changed later, live, from the options.
 | `binary_sensor.*_panel_reachable` | Panel in contact, from data still flowing |
 | `binary_sensor.*_zone_problem` | Any zone in tamper or fault, a permanent tamper zone included |
 | `binary_sensor.*_fire` | On while a real fire is active, off during a fire test, for automations to gate on |
+| `binary_sensor.*_cover_force_close` | Armed and no fire, for a cover automation's force close (off by default) |
+| `binary_sensor.*_cover_force_open` | Disarmed or fire, for a cover automation's force open (off by default) |
 | `switch.*_maintenance_mode` | Suppresses faults, never suppresses alarms |
 | `switch.*_fire_test_mode` | Quiets the fire alert for a weekly check, fails back on |
 | `button.*_test_alerts` | Runs the full ladder with a marked test |
@@ -173,9 +175,20 @@ posts a notification when it does.
 
 The `binary_sensor.*_fire` is the signal to gate automations on. It follows a
 real fire and stays off during a test, so a cover automation can force the blinds
-open on fire while ignoring the weekly check. With the hvorragend cover control
-blueprint, point `auto_up_force` at it and keep `auto_recover_after_force`
-enabled.
+open on fire while ignoring the weekly check.
+
+For the hvorragend cover control blueprint there are two ready made helpers, off
+by default, so no template is needed. Enable them on the device, then per blind:
+
+- **A blind that follows its schedule when unarmed:** `auto_up_force` at
+  `binary_sensor.*_fire`, `auto_down_force` at `binary_sensor.*_cover_force_close`.
+- **A blind that stays open when unarmed:** `auto_up_force` at
+  `binary_sensor.*_cover_force_open`, `auto_down_force` at
+  `binary_sensor.*_cover_force_close`.
+
+Keep `auto_recover_after_force` enabled. `cover_force_close` is on when armed and
+never during a fire; `cover_force_open` is on when disarmed or during a fire.
+Both derive from this integration's own armed state, so no arm boolean is needed.
 
 ## Services
 

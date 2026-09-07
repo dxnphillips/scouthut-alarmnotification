@@ -25,6 +25,8 @@ async def async_setup_entry(
     entities: list[TexecomEntity] = [
         TexecomAnyArmed(coordinator, entry),
         TexecomBridge(coordinator, entry),
+        TexecomCoverForceClose(coordinator, entry),
+        TexecomCoverForceOpen(coordinator, entry),
         TexecomDataHealthy(coordinator, entry),
         TexecomFire(coordinator, entry),
         TexecomPanelReachable(coordinator, entry),
@@ -95,6 +97,52 @@ class TexecomDataHealthy(TexecomEntity, BinarySensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return when the last panel message arrived."""
         return {"last_message": self.coordinator.last_message}
+
+
+class TexecomCoverForceClose(TexecomEntity, BinarySensorEntity):
+    """Ready made cover force close: on when armed, and never during a fire.
+
+    A convenience for a cover control automation, so blinds can close on arming
+    without a template. Point the blueprint's auto_down_force at this. Off by
+    default, since it is only wanted where blinds follow the alarm. Uses this
+    integration's own armed state, so no arm boolean needs maintaining.
+    """
+
+    _attr_name = "Cover force close"
+    _attr_icon = "mdi:window-shutter"
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: Any, entry: Any) -> None:
+        """Initialise."""
+        super().__init__(coordinator, entry, "cover_force_close")
+
+    @property
+    def is_on(self) -> bool:
+        """Return whether covers should be forced closed."""
+        return self.coordinator.any_area_armed and not self.coordinator.fire_active
+
+
+class TexecomCoverForceOpen(TexecomEntity, BinarySensorEntity):
+    """Ready made cover force open: on when disarmed, or whenever there is a fire.
+
+    For a cover that should stay open while the site is unarmed, and always open
+    on a fire. Point the blueprint's auto_up_force at this. A cover that instead
+    follows a schedule when unarmed should point auto_up_force at the Fire sensor
+    alone. Off by default; uses this integration's own armed state.
+    """
+
+    _attr_name = "Cover force open"
+    _attr_icon = "mdi:window-shutter-open"
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: Any, entry: Any) -> None:
+        """Initialise."""
+        super().__init__(coordinator, entry, "cover_force_open")
+
+    @property
+    def is_on(self) -> bool:
+        """Return whether covers should be forced open."""
+        return not self.coordinator.any_area_armed or self.coordinator.fire_active
 
 
 class TexecomFire(TexecomEntity, BinarySensorEntity):

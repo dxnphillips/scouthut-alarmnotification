@@ -3,6 +3,17 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.6.1
+
+- Two ready made cover control helpers, so a cover control automation needs no
+  template. `binary_sensor.<site>_cover_force_close` is on when the site is
+  armed and never during a fire, for the blueprint's auto_down_force.
+  `binary_sensor.<site>_cover_force_open` is on when the site is disarmed or
+  whenever there is a fire, for auto_up_force on a cover that stays open when
+  unarmed. Both use this integration's own armed state, so no arm boolean needs
+  maintaining, and both are off by default since they are only wanted where
+  blinds follow the alarm.
+
 ## 1.6.0
 
 - A test aware fire indicator, `binary_sensor.<site>_fire`, on while a real fire
