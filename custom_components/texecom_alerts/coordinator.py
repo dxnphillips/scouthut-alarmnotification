@@ -79,6 +79,12 @@ FIRE_DEDUP_SECONDS = 60
 # area activation within this window of a fire is taken to be that fire.
 FIRE_CORRELATE_SECONDS = 30
 
+# The fire indicator latches through a fire and clears on an explicit reset. A
+# fire link that auto rearms returns to normal within seconds while the fire is
+# still going, so a return to normal must not clear it. This is the backstop, so
+# it clears on its own a while after the last activation if no reset comes.
+FIRE_HOLD_SECONDS = 900
+
 _HUMAN_STATUS: dict[str, str] = {
     "full_armed": "armed away",
     "part_armed_1": "part armed 1",
@@ -187,6 +193,9 @@ class TexecomCoordinator:
         self.fire_test_mode: bool = False
         self._fire_test_window_unsub: Any = None
         self._fire_test_settle_unsub: Any = None
+        # Backstop that clears the latched fire indicator a while after the last
+        # activation, in case no reset comes.
+        self._fire_hold_unsub: Any = None
         # A short history of recent log events, for diagnostics and to see what
         # a test activation actually produced.
         self.recent_events: deque[dict[str, Any]] = deque(maxlen=25)
@@ -224,6 +233,9 @@ class TexecomCoordinator:
     async def async_shutdown(self) -> None:
         """Tear everything down."""
         self._cancel_fire_test_timers()
+        if self._fire_hold_unsub:
+            self._fire_hold_unsub()
+            self._fire_hold_unsub = None
         for unsub in self._unsubs:
             unsub()
         self._unsubs.clear()
@@ -431,10 +443,14 @@ class TexecomCoordinator:
         self.hass.async_create_task(self._raise_fire(name))
 
     def _fire_zone_normal(self) -> None:
-        """Handle the fire link returning to normal: the fire alarm has stopped."""
-        # Follow the link down: the fire indicator clears when the alarm stops.
-        self._set_fire_active(False)
-        # A return to normal is a sign the test is winding down, so restart the
+        """Handle the fire link returning to normal on the zone feed.
+
+        This does not clear the fire indicator. A fire link that auto rearms
+        returns to normal within seconds while the fire is still going, so a
+        return to normal is not the fire stopping. The indicator clears on a
+        reset or the hold backstop instead.
+        """
+        # A return to normal is a sign a test is winding down, so restart the
         # settle from here too, for a link that does report on the zone feed.
         if self.fire_test_mode:
             self._start_fire_test_settle()
@@ -446,8 +462,29 @@ class TexecomCoordinator:
         self.fire_active = value
         self._notify()
 
+    def _start_fire_hold(self) -> None:
+        """Extend the backstop that clears the fire indicator if no reset comes."""
+        if self._fire_hold_unsub:
+            self._fire_hold_unsub()
+        self._fire_hold_unsub = async_call_later(
+            self.hass, FIRE_HOLD_SECONDS, self._fire_hold_expired
+        )
+
+    @callback
+    def _fire_hold_expired(self, _now: Any) -> None:
+        self._fire_hold_unsub = None
+        # Never drop the indicator while an area is still in alarm, or the blinds
+        # would close mid fire. Wait and check again; a disarm clears it sooner.
+        if any(a.status == STATUS_TRIGGERED for a in self.areas.values()):
+            self._start_fire_hold()
+            return
+        self._set_fire_active(False)
+
     def clear_fire(self) -> None:
         """Clear the fire indicator, on an all clear such as an alerting reset."""
+        if self._fire_hold_unsub:
+            self._fire_hold_unsub()
+            self._fire_hold_unsub = None
         self._set_fire_active(False)
 
     def set_fire_test(self, on: bool) -> None:
@@ -880,12 +917,18 @@ class TexecomCoordinator:
         suppressed by maintenance mode, which the critical severity guarantees.
         """
         now = dt_util.utcnow()
-        # In a fire test, every detection pushes the auto exit out, whatever path
-        # found the fire, so test mode ends a settle after the last activation
-        # even for a link that only reports as an Auxiliary log event. Done before
-        # the dedup below, so a repeat activation still restarts the settle.
+        # Done before the dedup below, so a repeat activation still counts. In a
+        # fire test, every detection pushes the auto exit out, whatever path found
+        # the fire, even a link that only reports as an Auxiliary log event.
+        # Outside a test, every detection latches the fire indicator and extends
+        # its hold, so it stays on through a fire whose link keeps auto rearming,
+        # and clears only on a reset or the hold backstop, never on the auto
+        # rearm returning to normal.
         if self.fire_test_mode:
             self._start_fire_test_settle()
+        else:
+            self._set_fire_active(True)
+            self._start_fire_hold()
         if self._last_fire is not None and (now - self._last_fire) < timedelta(
             seconds=FIRE_DEDUP_SECONDS
         ):
@@ -906,10 +949,6 @@ class TexecomCoordinator:
                 DOMAIN,
             )
             return
-
-        # A real fire: latch the indicator so automations, the blinds and the
-        # heating hold can follow it until the fire link returns to normal.
-        self._set_fire_active(True)
 
         # Put fire on the event bus as a Fire event, so an external automation,
         # such as the heating integration's fire safety hold, can react. Both

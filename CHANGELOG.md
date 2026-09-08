@@ -3,6 +3,18 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.6.7
+
+- Fix a real fire closing the blinds. The fire link auto rearms, returning to
+  normal within seconds while the fire is still going, and the fire indicator
+  cleared on that return to normal. With the area still in its silent fire
+  alarm, the cover force close then read the area as an intruder and shut the
+  blinds mid fire. The fire indicator now latches through the auto rearm and
+  clears only on an explicit reset or a backstop that will not drop it while an
+  area is still in alarm, so the blinds stay open for the whole event. A disarm
+  at the panel silences the ladder but no longer drops the indicator, since a
+  keyholder often disarms to quiet the siren while the fire is still going.
+
 ## 1.6.6
 
 - Fire test mode now ends reliably a couple of minutes after the last activation

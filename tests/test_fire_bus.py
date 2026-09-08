@@ -213,6 +213,29 @@ async def test_area_trigger_coinciding_with_fire_is_not_an_intruder(hass):
     assert any(h.startswith("FIRE at") for h in headlines), headlines
 
 
+async def test_fire_indicator_survives_the_zone_auto_rearming(hass):
+    """The fire indicator must latch through an auto rearm, not clear on normal.
+
+    The fire link returns to normal within seconds of activating while the fire
+    is still going, so a return to normal must not drop the indicator, otherwise
+    the blinds would close mid fire. It clears on an explicit reset instead.
+    """
+    coordinator = _coordinator(hass)
+
+    coordinator._evaluate_zone({"name": "Fire", "number": 3, "status": "active"})
+    await hass.async_block_till_done()
+    assert coordinator.fire_active is True
+
+    # The auto rearm zone returns to normal while the fire is still going.
+    coordinator._evaluate_zone({"name": "Fire", "number": 3, "status": "normal"})
+    await hass.async_block_till_done()
+    assert coordinator.fire_active is True
+
+    # An explicit all clear clears it.
+    coordinator.clear_fire()
+    assert coordinator.fire_active is False
+
+
 async def test_fire_test_window_is_capped(hass):
     """The backstop window can never exceed the hard cap, whatever the option."""
     from custom_components.texecom_alerts.const import MAX_FIRE_TEST_MINUTES
