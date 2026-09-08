@@ -639,6 +639,16 @@ class TexecomCoordinator:
         self.areas[area_id] = state
         self._touch()
 
+        # A retained message is the broker replaying the area state as it stood
+        # before we subscribed, not a live change. On a restart it seeds the arm
+        # state so the entities are right, without raising an activation or an
+        # arm or disarm alert for state that has not actually changed, and
+        # without stopping an escalation that only a live disarm should. A live
+        # transition arrives with the retain flag clear and alerts as normal.
+        if getattr(msg, "retain", False):
+            self._notify()
+            return
+
         if state.status == STATUS_TRIGGERED and (
             previous is None or previous.status != STATUS_TRIGGERED
         ):
@@ -731,6 +741,14 @@ class TexecomCoordinator:
         )
         self._touch()
         self._notify()
+
+        # A retained log line is the broker replaying the last event from before
+        # we subscribed, so on a restart it fills the audit trail without raising
+        # an alert, re-raising a fire, or putting a stale event back on the bus
+        # for a consumer such as the heating hold to react to. A live event
+        # arrives with the retain flag clear and is handled below as normal.
+        if getattr(msg, "retain", False):
+            return
 
         # A fire, whether reported as a Fire event or as an Auxiliary alarm on a
         # configured fire zone, routes to the dedicated fire alert rather than a

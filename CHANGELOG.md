@@ -3,6 +3,17 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.6.8
+
+- Stop a restart alerting that areas have armed when nothing has changed. The
+  bridge retains area and log state, so the moment the integration resubscribes
+  after a Home Assistant restart the broker replays it, and that replay was read
+  as a live arm, disarm or event. A restart with an already armed panel raised a
+  fresh armed alert, and a retained fire or Auxiliary log would have re-raised
+  the fire and put a stale event back on the bus. A retained message now seeds
+  the state quietly, so the entities are right after a restart, and only a live
+  change, delivered with the retain flag clear, alerts.
+
 ## 1.6.7
 
 - Fix a real fire closing the blinds. The fire link auto rearms, returning to
