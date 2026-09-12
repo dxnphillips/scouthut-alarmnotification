@@ -32,6 +32,7 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import (
+    CAMERA_SWITCH_INTEGRATION,
     CONF_ACK_ENDPOINT,
     CONF_AREAS,
     CONF_AUTO_PHONES,
@@ -289,11 +290,23 @@ class TexecomOptionsFlow(OptionsFlow):
                 vol.Optional(
                     CONF_CAMERA_DETECTION_SWITCHES,
                     default=current.get(CONF_CAMERA_DETECTION_SWITCHES, []),
-                ): EntitySelector(EntitySelectorConfig(domain="switch", multiple=True)),
+                ): EntitySelector(
+                    EntitySelectorConfig(
+                        domain="switch",
+                        integration=CAMERA_SWITCH_INTEGRATION,
+                        multiple=True,
+                    )
+                ),
                 vol.Optional(
                     CONF_CAMERA_INVERTED_SWITCHES,
                     default=current.get(CONF_CAMERA_INVERTED_SWITCHES, []),
-                ): EntitySelector(EntitySelectorConfig(domain="switch", multiple=True)),
+                ): EntitySelector(
+                    EntitySelectorConfig(
+                        domain="switch",
+                        integration=CAMERA_SWITCH_INTEGRATION,
+                        multiple=True,
+                    )
+                ),
                 vol.Optional(
                     CONF_CAMERA_NIGHT_START,
                     default=current.get(

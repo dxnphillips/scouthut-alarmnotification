@@ -115,6 +115,10 @@ DEFAULT_CAMERA_FOLLOW: Final = False
 # alarm almost always wants them watching a fire too.
 CONF_CAMERA_FIRE_FORCE: Final = "camera_fire_force"
 DEFAULT_CAMERA_FIRE_FORCE: Final = True
+# The switch pickers are filtered to this integration, so only the camera
+# analytics switches show rather than every switch in the house. The domain
+# of the Hikvision NVR integration that provides them.
+CAMERA_SWITCH_INTEGRATION: Final = "hikvision_next"
 # The overnight window when detection stays on even while disarmed, so an empty
 # building is still watched. Wraps midnight, so the default is on from 22:00
 # until 08:00. Stored as HH:MM:SS strings, the shape the time selector returns.

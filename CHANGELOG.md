@@ -19,8 +19,11 @@ All notable changes to Texecom Alerts are recorded here. This project follows
   off. As well as following every arm, disarm and night boundary, it re-checks
   the switches on a fifteen minute interval and heals any that have drifted or
   dropped a command, driving only the switches that are actually wrong so a
-  routine check with nothing out of place makes no call at all. Off by default,
-  and it never touches a switch until a site turns it on and names the switches.
+  routine check with nothing out of place makes no call at all. The switch
+  pickers are filtered to the Hikvision integration, so only the camera
+  analytics switches show rather than every switch in the building. Off by
+  default, and it never touches a switch until a site turns it on and names the
+  switches.
 
 ## 1.6.8
 
