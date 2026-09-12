@@ -3,6 +3,20 @@
 All notable changes to Texecom Alerts are recorded here. This project follows
 [semantic versioning](https://semver.org).
 
+## 1.7.0
+
+- Add camera analytics that follow the armed state, configured in the options,
+  no automation to maintain. Name the detection switches, such as line crossing
+  and intrusion, and they come on while any area is armed and overnight during a
+  configurable window even while disarmed, and go off during the day once
+  disarmed. A second, inverted group is on only while fully disarmed, off while
+  armed, for a camera whose own audible warning should sound while the site is
+  open. It reads this integration's own armed state, so no arm helper needs
+  keeping in sync, verifies each switch actually followed and retries the
+  laggards, and raises a notification if any detection switch will not follow.
+  Off by default, and it never touches a switch until a site turns it on and
+  names the switches.
+
 ## 1.6.8
 
 - Stop a restart alerting that areas have armed when nothing has changed. The

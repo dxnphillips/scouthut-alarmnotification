@@ -17,6 +17,8 @@ from homeassistant.config_entries import (
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     BooleanSelector,
+    EntitySelector,
+    EntitySelectorConfig,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -26,6 +28,7 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
+    TimeSelector,
 )
 
 from .const import (
@@ -33,6 +36,11 @@ from .const import (
     CONF_AREAS,
     CONF_AUTO_PHONES,
     CONF_BATTERY_LOW_VOLTS,
+    CONF_CAMERA_DETECTION_SWITCHES,
+    CONF_CAMERA_FOLLOW,
+    CONF_CAMERA_INVERTED_SWITCHES,
+    CONF_CAMERA_NIGHT_END,
+    CONF_CAMERA_NIGHT_START,
     CONF_CRITICAL_SOUND,
     CONF_ESCALATE_TAMPERS,
     CONF_FIRE_SOUND,
@@ -58,6 +66,9 @@ from .const import (
     CONF_WEBHOOK_ID,
     DEFAULT_AUTO_PHONES,
     DEFAULT_BATTERY_LOW_VOLTS,
+    DEFAULT_CAMERA_FOLLOW,
+    DEFAULT_CAMERA_NIGHT_END,
+    DEFAULT_CAMERA_NIGHT_START,
     DEFAULT_CRITICAL_SOUND,
     DEFAULT_ESCALATE_TAMPERS,
     DEFAULT_FIRE_TEST_MINUTES,
@@ -269,6 +280,30 @@ class TexecomOptionsFlow(OptionsFlow):
                         min=5, max=60, step=5, mode=NumberSelectorMode.BOX
                     )
                 ),
+                vol.Optional(
+                    CONF_CAMERA_FOLLOW,
+                    default=current.get(CONF_CAMERA_FOLLOW, DEFAULT_CAMERA_FOLLOW),
+                ): BooleanSelector(),
+                vol.Optional(
+                    CONF_CAMERA_DETECTION_SWITCHES,
+                    default=current.get(CONF_CAMERA_DETECTION_SWITCHES, []),
+                ): EntitySelector(EntitySelectorConfig(domain="switch", multiple=True)),
+                vol.Optional(
+                    CONF_CAMERA_INVERTED_SWITCHES,
+                    default=current.get(CONF_CAMERA_INVERTED_SWITCHES, []),
+                ): EntitySelector(EntitySelectorConfig(domain="switch", multiple=True)),
+                vol.Optional(
+                    CONF_CAMERA_NIGHT_START,
+                    default=current.get(
+                        CONF_CAMERA_NIGHT_START, DEFAULT_CAMERA_NIGHT_START
+                    ),
+                ): TimeSelector(),
+                vol.Optional(
+                    CONF_CAMERA_NIGHT_END,
+                    default=current.get(
+                        CONF_CAMERA_NIGHT_END, DEFAULT_CAMERA_NIGHT_END
+                    ),
+                ): TimeSelector(),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

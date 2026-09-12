@@ -78,6 +78,18 @@ CONF_MAINTENANCE_HOURS: Final = "maintenance_hours"
 # because a mode that suppresses a fire alert must never be left on for long.
 CONF_FIRE_TEST_MINUTES: Final = "fire_test_minutes"
 
+# Make camera analytics switches follow the armed state on a schedule. The
+# detection switches are on while any area is armed or during the night window,
+# and off during the day while disarmed. The inverted switches are the mirror,
+# on only while fully disarmed, for a camera whose own audible warning should
+# sound only when nobody has armed. All off by default, so the integration
+# never touches a switch until a site opts in and names the switches.
+CONF_CAMERA_FOLLOW: Final = "camera_follow"
+CONF_CAMERA_DETECTION_SWITCHES: Final = "camera_detection_switches"
+CONF_CAMERA_INVERTED_SWITCHES: Final = "camera_inverted_switches"
+CONF_CAMERA_NIGHT_START: Final = "camera_night_start"
+CONF_CAMERA_NIGHT_END: Final = "camera_night_end"
+
 # Defaults
 DEFAULT_SITE_NAME: Final = "Scout HQ"
 DEFAULT_PREFIX: Final = "texecom2mqtt"
@@ -96,6 +108,18 @@ MAX_FIRE_TEST_MINUTES: Final = 60
 # Comfortably longer than a one minute test burst so a single test does not end
 # it between pulses, while still ending it promptly once the link is quiet.
 FIRE_TEST_SETTLE_SECONDS: Final = 120
+DEFAULT_CAMERA_FOLLOW: Final = False
+# The overnight window when detection stays on even while disarmed, so an empty
+# building is still watched. Wraps midnight, so the default is on from 22:00
+# until 08:00. Stored as HH:MM:SS strings, the shape the time selector returns.
+DEFAULT_CAMERA_NIGHT_START: Final = "22:00:00"
+DEFAULT_CAMERA_NIGHT_END: Final = "08:00:00"
+# Verify the switches actually followed, and retry the laggards, because a
+# camera analytics switch can drop a command. Mirrors the automation this
+# replaces: five retries a few seconds apart, then a notification if any stuck.
+CAMERA_RETRY_COUNT: Final = 5
+CAMERA_RETRY_DELAY: Final = 3
+CAMERA_FAILURE_NOTIFICATION: Final = "texecom_camera_follow_failure"
 DEFAULT_ESCALATE_TAMPERS: Final = False
 DEFAULT_NOTIFY_ARM_DISARM: Final = True
 DEFAULT_NOTIFY_ACTIVITY: Final = False

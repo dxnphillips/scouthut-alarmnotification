@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 
 from .alerting import AlertingEngine
+from .camera_follow import CameraFollowController
 from .const import CONF_WEBHOOK_ID, DOMAIN, PLATFORMS
 from .coordinator import TexecomCoordinator
 from .webhook_ack import async_register_webhook, async_unregister_webhook
@@ -32,6 +33,7 @@ class TexecomData:
 
     coordinator: TexecomCoordinator
     alerting: AlertingEngine
+    camera_follow: CameraFollowController
 
 
 type TexecomConfigEntry = ConfigEntry[TexecomData]
@@ -49,11 +51,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: TexecomConfigEntry) -> b
 
     coordinator = TexecomCoordinator(hass, entry)
     alerting = AlertingEngine(hass, entry, coordinator)
+    camera_follow = CameraFollowController(hass, entry, coordinator)
 
     await alerting.async_setup()
     await coordinator.async_setup()
+    await camera_follow.async_setup()
 
-    entry.runtime_data = TexecomData(coordinator=coordinator, alerting=alerting)
+    entry.runtime_data = TexecomData(
+        coordinator=coordinator, alerting=alerting, camera_follow=camera_follow
+    )
     async_register_webhook(hass, entry)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -70,6 +76,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: TexecomConfigEntry) -> 
         async_unregister_webhook(hass, entry)
         await entry.runtime_data.coordinator.async_shutdown()
         await entry.runtime_data.alerting.async_shutdown()
+        await entry.runtime_data.camera_follow.async_shutdown()
     return unloaded
 
 
