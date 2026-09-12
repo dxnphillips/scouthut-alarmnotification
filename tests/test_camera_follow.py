@@ -19,7 +19,7 @@ from custom_components.texecom_alerts.camera_follow import (
 from custom_components.texecom_alerts.const import DOMAIN
 
 
-def _controller(hass, options: dict, armed: bool):
+def _controller(hass, options: dict, armed: bool, fire: bool = False):
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Scout HQ",
@@ -27,7 +27,7 @@ def _controller(hass, options: dict, armed: bool):
         options=options,
     )
     entry.add_to_hass(hass)
-    coordinator = SimpleNamespace(any_area_armed=armed)
+    coordinator = SimpleNamespace(any_area_armed=armed, fire_active=fire)
     return CameraFollowController(hass, entry, coordinator)
 
 
@@ -67,6 +67,30 @@ async def test_targets_follow_the_armed_state(hass):
     disarmed._night_start = None
     disarmed._night_end = None
     assert disarmed._targets() == (False, True)
+
+
+async def test_fire_forces_detection_on(hass):
+    """A real fire forces detection on even while disarmed and out of hours."""
+    controller = _controller(hass, {"camera_follow": True}, armed=False, fire=True)
+    controller._night_start = None
+    controller._night_end = None
+    detection_on, inverted_on = controller._targets()
+    assert detection_on is True
+    # A fire does not touch the inverted group, which still follows arm only.
+    assert inverted_on is True
+
+
+async def test_fire_force_can_be_turned_off(hass):
+    """With fire forcing disabled, a fire does not turn detection on."""
+    controller = _controller(
+        hass,
+        {"camera_follow": True, "camera_fire_force": False},
+        armed=False,
+        fire=True,
+    )
+    controller._night_start = None
+    controller._night_end = None
+    assert controller._targets() == (False, True)
 
 
 async def test_disabled_feature_touches_nothing(hass):

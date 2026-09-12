@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import time
+from datetime import time, timedelta
 from typing import Any
 
 from homeassistant.components import logbook, persistent_notification
@@ -37,18 +37,24 @@ from homeassistant.const import (
 from homeassistant.core import CoreState, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.event import async_track_time_change
+from homeassistant.helpers.event import (
+    async_track_time_change,
+    async_track_time_interval,
+)
 from homeassistant.util import dt as dt_util
 
 from .const import (
     CAMERA_FAILURE_NOTIFICATION,
+    CAMERA_RECONCILE_SECONDS,
     CAMERA_RETRY_COUNT,
     CAMERA_RETRY_DELAY,
     CONF_CAMERA_DETECTION_SWITCHES,
+    CONF_CAMERA_FIRE_FORCE,
     CONF_CAMERA_FOLLOW,
     CONF_CAMERA_INVERTED_SWITCHES,
     CONF_CAMERA_NIGHT_END,
     CONF_CAMERA_NIGHT_START,
+    DEFAULT_CAMERA_FIRE_FORCE,
     DEFAULT_CAMERA_FOLLOW,
     DEFAULT_CAMERA_NIGHT_END,
     DEFAULT_CAMERA_NIGHT_START,
@@ -89,6 +95,9 @@ class CameraFollowController:
             opts.get(CONF_CAMERA_DETECTION_SWITCHES) or []
         )
         self._inverted: list[str] = list(opts.get(CONF_CAMERA_INVERTED_SWITCHES) or [])
+        self._fire_force: bool = bool(
+            opts.get(CONF_CAMERA_FIRE_FORCE, DEFAULT_CAMERA_FIRE_FORCE)
+        )
         self._night_start = dt_util.parse_time(
             str(opts.get(CONF_CAMERA_NIGHT_START) or "")
         ) or dt_util.parse_time(DEFAULT_CAMERA_NIGHT_START)
@@ -131,6 +140,17 @@ class CameraFollowController:
                     )
                 )
 
+        # Re-check on an interval as well, so a switch that drifted or a command
+        # that dropped between events is healed without waiting for the next arm
+        # change. A reconcile drives only the switches that are actually wrong.
+        self._unsubs.append(
+            async_track_time_interval(
+                self.hass,
+                self._handle_reconcile,
+                timedelta(seconds=CAMERA_RECONCILE_SECONDS),
+            )
+        )
+
         # Settle the switches to the right state on start. If Home Assistant is
         # still coming up the switch entities may not exist yet, so wait for the
         # started event; otherwise, on a reload or an options change, do it now.
@@ -164,13 +184,21 @@ class CameraFollowController:
         """Settle the switches once Home Assistant has finished starting."""
         self.hass.async_create_task(self._apply(force=True))
 
+    @callback
+    def _handle_reconcile(self, _now: Any) -> None:
+        """Re-check the switches on the interval, healing any that have drifted."""
+        self.hass.async_create_task(self._apply(force=True))
+
     def _targets(self) -> tuple[bool, bool]:
         """Return the desired on state for the detection and inverted groups."""
         armed = self.coordinator.any_area_armed
         night = False
         if self._night_start is not None and self._night_end is not None:
             night = _in_window(dt_util.now().time(), self._night_start, self._night_end)
-        detection_on = armed or night
+        # A real fire forces detection on so the cameras record the incident. It
+        # reads the test aware indicator, so a fire test leaves the cameras be.
+        fire = self._fire_force and self.coordinator.fire_active
+        detection_on = armed or night or fire
         inverted_on = not armed
         return detection_on, inverted_on
 
@@ -192,24 +220,30 @@ class CameraFollowController:
             self._report_detection(stuck)
 
     async def _drive(self, entities: list[str], desired_on: bool) -> list[str]:
-        """Turn a group on or off, verifying and retrying the laggards.
+        """Bring a group to the desired state, driving only what is wrong.
 
-        Returns the entities that would not follow, so the caller can raise a
-        notification. A switch missing from the state machine counts as stuck,
-        rather than aborting the whole group as a batched service call would.
+        Only the switches not already at the target are turned, and the laggards
+        are retried a few times, so a routine reconcile with nothing out of place
+        makes no service call at all. Returns the switches that would not follow,
+        so the caller can raise a notification. A switch missing from the state
+        machine counts as stuck, and retrying it would not help, so it is not
+        driven and the loop stops once only missing switches remain.
         """
         if not entities:
             return []
         service = SERVICE_TURN_ON if desired_on else SERVICE_TURN_OFF
         desired_state = STATE_ON if desired_on else STATE_OFF
 
-        await self._call(service, [e for e in entities if self.hass.states.get(e)])
-        for _ in range(CAMERA_RETRY_COUNT):
+        for attempt in range(CAMERA_RETRY_COUNT + 1):
             laggards = self._laggards(entities, desired_state)
             if not laggards:
                 return []
-            await asyncio.sleep(CAMERA_RETRY_DELAY)
-            await self._call(service, [e for e in laggards if self.hass.states.get(e)])
+            present = [e for e in laggards if self.hass.states.get(e) is not None]
+            if not present:
+                break
+            if attempt:
+                await asyncio.sleep(CAMERA_RETRY_DELAY)
+            await self._call(service, present)
         return self._laggards(entities, desired_state)
 
     def _laggards(self, entities: list[str], desired_state: str) -> list[str]:

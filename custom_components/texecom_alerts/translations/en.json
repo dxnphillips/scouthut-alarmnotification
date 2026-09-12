@@ -77,7 +77,8 @@
           "camera_detection_switches": "Detection switches (on while armed or during the night window, off during the day when disarmed, such as line crossing and intrusion)",
           "camera_inverted_switches": "Inverted switches (on only while fully disarmed, off while armed, for a camera whose own audible warning should sound only when the site is open)",
           "camera_night_start": "Night window start (detection stays on overnight even when disarmed)",
-          "camera_night_end": "Night window end"
+          "camera_night_end": "Night window end",
+          "camera_fire_force": "Force detection on during a real fire (so the cameras record the incident, whatever the arm state or time)"
         }
       }
     }

@@ -109,6 +109,12 @@ MAX_FIRE_TEST_MINUTES: Final = 60
 # it between pulses, while still ending it promptly once the link is quiet.
 FIRE_TEST_SETTLE_SECONDS: Final = 120
 DEFAULT_CAMERA_FOLLOW: Final = False
+# Force the detection switches on for a real fire, whatever the arm state or
+# clock, so the cameras are recording the incident. Test aware, so a fire test
+# leaves them alone. On by default, since a site that wants cameras follow the
+# alarm almost always wants them watching a fire too.
+CONF_CAMERA_FIRE_FORCE: Final = "camera_fire_force"
+DEFAULT_CAMERA_FIRE_FORCE: Final = True
 # The overnight window when detection stays on even while disarmed, so an empty
 # building is still watched. Wraps midnight, so the default is on from 22:00
 # until 08:00. Stored as HH:MM:SS strings, the shape the time selector returns.
@@ -120,6 +126,11 @@ DEFAULT_CAMERA_NIGHT_END: Final = "08:00:00"
 CAMERA_RETRY_COUNT: Final = 5
 CAMERA_RETRY_DELAY: Final = 3
 CAMERA_FAILURE_NOTIFICATION: Final = "texecom_camera_follow_failure"
+# Re-check the switches on this interval as well as on every event, to heal a
+# switch that has drifted, or a command that dropped, between arm changes and
+# the night boundaries. A reconcile touches only the switches that are wrong,
+# so when all is well it is a cheap read and drives nothing.
+CAMERA_RECONCILE_SECONDS: Final = 900
 DEFAULT_ESCALATE_TAMPERS: Final = False
 DEFAULT_NOTIFY_ARM_DISARM: Final = True
 DEFAULT_NOTIFY_ACTIVITY: Final = False

@@ -14,8 +14,13 @@ All notable changes to Texecom Alerts are recorded here. This project follows
   open. It reads this integration's own armed state, so no arm helper needs
   keeping in sync, verifies each switch actually followed and retries the
   laggards, and raises a notification if any detection switch will not follow.
-  Off by default, and it never touches a switch until a site turns it on and
-  names the switches.
+  A real fire forces the detection switches on so the cameras record the
+  incident, test aware so a fire test leaves them be, and this can be turned
+  off. As well as following every arm, disarm and night boundary, it re-checks
+  the switches on a fifteen minute interval and heals any that have drifted or
+  dropped a command, driving only the switches that are actually wrong so a
+  routine check with nothing out of place makes no call at all. Off by default,
+  and it never touches a switch until a site turns it on and names the switches.
 
 ## 1.6.8
 

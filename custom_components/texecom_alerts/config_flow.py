@@ -37,6 +37,7 @@ from .const import (
     CONF_AUTO_PHONES,
     CONF_BATTERY_LOW_VOLTS,
     CONF_CAMERA_DETECTION_SWITCHES,
+    CONF_CAMERA_FIRE_FORCE,
     CONF_CAMERA_FOLLOW,
     CONF_CAMERA_INVERTED_SWITCHES,
     CONF_CAMERA_NIGHT_END,
@@ -66,6 +67,7 @@ from .const import (
     CONF_WEBHOOK_ID,
     DEFAULT_AUTO_PHONES,
     DEFAULT_BATTERY_LOW_VOLTS,
+    DEFAULT_CAMERA_FIRE_FORCE,
     DEFAULT_CAMERA_FOLLOW,
     DEFAULT_CAMERA_NIGHT_END,
     DEFAULT_CAMERA_NIGHT_START,
@@ -304,6 +306,12 @@ class TexecomOptionsFlow(OptionsFlow):
                         CONF_CAMERA_NIGHT_END, DEFAULT_CAMERA_NIGHT_END
                     ),
                 ): TimeSelector(),
+                vol.Optional(
+                    CONF_CAMERA_FIRE_FORCE,
+                    default=current.get(
+                        CONF_CAMERA_FIRE_FORCE, DEFAULT_CAMERA_FIRE_FORCE
+                    ),
+                ): BooleanSelector(),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)
